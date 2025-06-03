@@ -106,7 +106,122 @@ public:
     }
 };
 
+class ASTProgram : public ASTNode {
+/**
+ * @brief Represents the root node of an entire program.
+ * 
+ * This node aggregates a list of top-level declarations or statements
+ * that compose a complete source file.
+ * 
+ * Components:
+ * - 'statements': a list of AST nodes representing functions, classes, or global statements.
+ */
+public:
+    std::vector<ASTNodePtr> statements;
+
+    ASTProgram(const std::vector<ASTNodePtr>& stmts) : statements(stmts) {}
+};
+
+class ASTFunction : public ASTNode {
+/**
+ * @brief Represents a function declaration in the AST.
+ * 
+ * This node defines a named function, including its parameter list and function body.
+ * 
+ * Components:
+ * - 'name': the name of the function.
+ * - 'params': a list of parameter names.
+ * - 'body': a list of statements that make up the function body.
+ */
+public:
+    std::string name;
+    std::vector<std::string> params;
+    std::vector<ASTNodePtr> body;
+
+    ASTFunction(const std::string& n, const std::vector<std::string>& p, const std::vector<ASTNodePtr>& b)
+        : name(n), params(p), body(b) {}
+};
+
+class ASTReturn : public ASTNode {
+/**
+ * @brief Represents a return statement in the AST.
+ * 
+ * This node is used to return a value from within a function.
+ * 
+ * Components:
+ * - 'expr': the expression to be evaluated and returned.
+ */
+public:
+    ASTNodePtr expr;
+
+    ASTReturn(ASTNodePtr e) : expr(e) {}
+};
+
+class ASTIf : public ASTNode {
+/**
+ * @brief Represents an if-else conditional structure in the AST.
+ * 
+ * This node models a conditional branch with an optional else block.
+ * 
+ * Components:
+ * - 'condition': the condition expression to be evaluated.
+ * - 'thenBranch': a list of statements executed if the condition is true.
+ * - 'elseBranch': a list of statements executed if the condition is false (optional).
+ */
+public:
+    ASTNodePtr condition;
+    std::vector<ASTNodePtr> thenBranch;
+    std::vector<ASTNodePtr> elseBranch;
+
+    ASTIf(ASTNodePtr cond, const std::vector<ASTNodePtr>& thenBr, const std::vector<ASTNodePtr>& elseBr)
+        : condition(cond), thenBranch(thenBr), elseBranch(elseBr) {}
+};
+
+class ASTClass : public ASTNode {
+/**
+ * @brief Represents a class declaration in the AST.
+ * 
+ * This node defines a named class, containing member declarations such as methods or fields.
+ * 
+ * Components:
+ * - 'name': the name of the class.
+ * - 'members': a list of class members (functions, fields, etc.).
+ */
+public:
+    std::string name;
+    std::vector<ASTNodePtr> members;
+
+    ASTClass(const std::string& n, const std::vector<ASTNodePtr>& m) : name(n), members(m) {}
+};
+
+class ASTUnaryOp : public ASTNode {
+/**
+ * @brief Represents a unary operation node in the AST.
+ * 
+ * This node models expressions with a unary operator, such as negation (-) or logical not (!).
+ * 
+ * Components:
+ * - 'op': the unary operator (e.g., "-", "!").
+ * - 'operand': the operand expression to which the operator is applied.
+ */
+public:
+    std::string op;
+    ASTNodePtr operand;
+
+    ASTUnaryOp(const std::string& o, ASTNodePtr expr) : op(o), operand(expr) {}
+};
+
 struct VariableInfo {
+/**
+ * @brief Represents information about a variable during interpretation.
+ * 
+ * This struct stores the value of a variable and whether it is constant.
+ * Used by the interpreter's environment to track variable state.
+ * 
+ * Components:
+ * - 'value': the current value of the variable.
+ * - 'isConst': whether the variable was declared as constant.
+ */
     Value value;
     bool isConst;
 
