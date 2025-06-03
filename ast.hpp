@@ -4,6 +4,10 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <unordered_map>
+#include <stdexcept>
+#include <iostream>
+#include <sstream>
 
 class ASTNode {
 /**
@@ -23,6 +27,93 @@ public:
 };
 
 using ASTNodePtr = std::shared_ptr<ASTNode>;
+
+enum class ValueType {
+    INT,
+    DOUBLE,
+    BOOL,
+    STRING
+};
+
+class Value {
+/**
+ * @brief Represents a dynamically-typed value used during evaluation.
+ * 
+ * The Value class is used to store literal values (int, double, bool, or string)
+ * in a unified structure that can be passed around during interpretation.
+ * 
+ * It supports implicit construction from C++ primitive types and includes accessors
+ * that perform type checking before returning the stored value.
+ * 
+ * Internally, it uses a tagged union to store exactly one of the supported types.
+ * 
+ * Components:
+ * - 'type': indicates which type is currently stored (INT, DOUBLE, BOOL, STRING).
+ * - 'intVal': stores an integer value (if type is INT).
+ * - 'doubleVal': stores a floating-point value (if type is DOUBLE).
+ * - 'boolVal': stores a boolean value (if type is BOOL).
+ * - 'stringVal': stores a string value (if type is STRING).
+ */
+public:
+    ValueType type;
+    union {
+        int intVal;
+        double doubleVal;
+        bool boolVal;
+    };
+    std::string stringVal;
+
+    Value() : type(ValueType::INT), intVal(0) {}
+    Value(int v) : type(ValueType::INT), intVal(v) {}
+    Value(double v) : type(ValueType::DOUBLE), doubleVal(v) {}
+    Value(bool v) : type(ValueType::BOOL), boolVal(v) {}
+    Value(const std::string& v) : type(ValueType::STRING), stringVal(v) {}
+
+    int asInt() const {
+        /**
+         * @brief Returns the stored value as an integer.
+         * @throws std::runtime_error if the stored type is not INT.
+         */
+        if (type == ValueType::INT) return intVal;
+        throw std::runtime_error("Value is not an int");
+    }
+
+    double asDouble() const {
+        /**
+         * @brief Returns the stored value as a double.
+         * @throws std::runtime_error if the stored type is not DOUBLE.
+         */
+        if (type == ValueType::DOUBLE) return doubleVal;
+        throw std::runtime_error("Value is not a double");
+    }
+
+    bool asBool() const {
+        /**
+         * @brief Returns the stored value as a boolean.
+         * @throws std::runtime_error if the stored type is not BOOL.
+         */
+        if (type == ValueType::BOOL) return boolVal;
+        throw std::runtime_error("Value is not a bool");
+    }
+
+    std::string asString() const {
+        /**
+         * @brief Returns the stored value as a string.
+         * @throws std::runtime_error if the stored type is not STRING.
+         */
+        if (type == ValueType::STRING) return stringVal;
+        throw std::runtime_error("Value is not a string");
+    }
+};
+
+struct VariableInfo {
+    Value value;
+    bool isConst;
+
+    VariableInfo(const Value& v, bool c) : value(v), isConst(c) {}
+};
+
+using Environment = std::unordered_map<std::string, VariableInfo>;
 
 class ASTVarDecl : public ASTNode {
 /**
@@ -57,8 +148,8 @@ class ASTAssign : public ASTNode {
  * This node models the assignment of a value to a target variable or location.
  * 
  * Components:
- * - `target`: the left-hand side (LHS) of the assignment, typically an `ASTVariable` or a more complex target.
- * - `value`: the right-hand side (RHS) expression whose evaluated result is assigned to the target.
+ * - 'target': the left-hand side (LHS) of the assignment, typically an 'ASTVariable' or a more complex target.
+ * - 'value': the right-hand side (RHS) expression whose evaluated result is assigned to the target.
  */
 public:
     ASTNodePtr target;
@@ -134,5 +225,99 @@ public:
     */
     ASTBinaryOp(const std::string& o, ASTNodePtr l, ASTNodePtr r) : op(o), left(l), right(r) {}
 };
+
+inline Value eval(ASTNodePtr node, Environment& env) {
+    /**
+     * @brief Recursively evaluates a node in the Abstract Syntax Tree (AST).
+     * 
+     * This function interprets a given AST node and returns its computed value.
+     * It supports literal values, variables, binary operations, assignments, and declarations.
+     * 
+     * The function uses an 'Environment' to track variable values and constness.
+     * Each variable is stored as a 'VariableInfo' object, containing its value and a flag indicating
+     * whether it is declared as 'const'.
+     * 
+     * @param node A pointer to the AST node to evaluate.
+     * @param env A reference to the current environment of variables.
+     * @return Value The evaluated result of the node.
+     * 
+     * @throws std::runtime_error If a variable is undefined, a constant is modified, or
+     *         an unsupported or mistyped operation is encountered.
+     */
+    if (auto lit = std::dynamic_pointer_cast<ASTLiteral>(node)) {
+        const std::string& val = lit->value;
+        if (val == "true") return Value(true);
+        if (val == "false") return Value(false);
+
+        try {
+            size_t idx;
+            int ival = std::stoi(val, &idx);
+            if (idx == val.size()) return Value(ival);
+        } catch (...) {}
+
+        try {
+            size_t idx;
+            double dval = std::stod(val, &idx);
+            if (idx == val.size()) return Value(dval);
+        } catch (...) {}
+
+        return Value(val);
+    }
+
+    else if (auto var = std::dynamic_pointer_cast<ASTVariable>(node)) {
+        auto it = env.find(var->name);
+        if (it == env.end()) throw std::runtime_error("Variable not defined: " + var->name);
+        return it->second.value;
+    }
+
+    else if (auto binop = std::dynamic_pointer_cast<ASTBinaryOp>(node)) {
+        Value left = eval(binop->left, env);
+        Value right = eval(binop->right, env);
+
+        if (left.type == ValueType::INT && right.type == ValueType::INT) {
+            int li = left.asInt();
+            int ri = right.asInt();
+
+            if (binop->op == "+") return Value(li + ri);
+            if (binop->op == "-") return Value(li - ri);
+            if (binop->op == "*") return Value(li * ri);
+            if (binop->op == "/") {
+                if (ri == 0) throw std::runtime_error("Division by zero");
+                return Value(li / ri);
+            }
+        }
+
+        throw std::runtime_error("Unsupported binary operation or type mismatch");
+    }
+
+    else if (auto assign = std::dynamic_pointer_cast<ASTAssign>(node)) {
+        auto varNode = std::dynamic_pointer_cast<ASTVariable>(assign->target);
+        if (!varNode) throw std::runtime_error("Assignment target must be a variable");
+
+        auto it = env.find(varNode->name);
+        if (it == env.end()) throw std::runtime_error("Variable not defined: " + varNode->name);
+        if (it->second.isConst) throw std::runtime_error("Cannot assign to constant variable: " + varNode->name);
+
+        Value val = eval(assign->value, env);
+        it->second.value = val;
+        return val;
+    }
+
+    else if (auto decl = std::dynamic_pointer_cast<ASTVarDecl>(node)) {
+        Value val = Value(0);
+        if (decl->initExpr) {
+            val = eval(decl->initExpr, env);
+        }
+
+        if (env.find(decl->name) != env.end()) {
+            throw std::runtime_error("Variable already declared: " + decl->name);
+        }
+
+        env[decl->name] = VariableInfo(val, decl->isConst);
+        return val;
+    }
+
+    throw std::runtime_error("Unknown AST node type");
+}
 
 #endif
