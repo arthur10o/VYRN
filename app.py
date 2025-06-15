@@ -26,25 +26,22 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.send_error(500, "Error loading file")
 
     def do_POST(self):
-        if self.path == '/run':
-            length  = int(self.headers.get('Content-Length'))
-            body = self.rfile.read(length)
-            data = json.loads(body)
+        length  = int(self.headers.get('Content-Length'))
+        body = self.rfile.read(length)
+        data = json.loads(body)
 
-            code = data.get('code', '')
-            result = self.interpret_code(code)
+        code = data.get('code', '')
+        result = self.interpret_code(code)
 
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(result.encode())
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(result.encode())
 
-            print("Automatic server shutdown after processing.")
-            def shutdown_server():
-                httpd.shutdown()
-            threading.Thread(target=shutdown_server).start()
-        else:
-            self.send_error(405, "Unauthorized method for this URL.")
+        print("Automatic server shutdown after processing.")
+        def shutdown_server():
+            httpd.shutdown()
+        threading.Thread(target=shutdown_server).start()
     
     def interpret_code(self, code):
         if code.strip().startswith("print"):
