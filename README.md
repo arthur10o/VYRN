@@ -1,7 +1,5 @@
 # VYRN — Langage de programmation expérimental
 
-![VYRN Logo](path/to/logo.png)
-
 ---
 
 ## Table des matières
