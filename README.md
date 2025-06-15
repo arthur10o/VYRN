@@ -43,6 +43,7 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 - Python 3.x  
 - Navigateur web moderne (Chrome, Firefox, Edge)  
 - (Optionnel) Compilateur C++ pour développer l'interpréteur
+- Assurez-vous que `g++` est dans votre PATH (MinGW pour Windows ou GCC sous Linux/macOS).
 
 ### Étapes
 
@@ -65,15 +66,16 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 1. Ecrire du code VYRN dans l'éditeur
 2. Cliquer sur Exécuter
 3. Visualiser la sortie dans la console de résultat
-4. Le serveur s'arrête automatiquement après éxécution
+4. - Le serveur **reste actif** après exécution.
+   - L’arrêt automatique a été désactivé pour faciliter les tests successifs.
 
 ---
 
 ## Langage VYRN — Documentation
 ### Syntaxe de base
-| Commande        | Description                      | Exemple                 |
-|----------------|----------------------------------|-------------------------|
-| `print "texte"` | Affiche une chaîne de caractères | `print "Hello, World!"` |
+| Commande        | Description                      | Exemple                 | Sortie                 |
+|----------------|----------------------------------|-------------------------|-------------------------|
+| `print("texte");` | Affiche une chaîne de caractères | `print("Hello, World!");` |```Hello, World!``` |
 
 - Les chaines doivent être entre guillemets doubles ```" "```
 - Les espaces sont obligatoires après la commande ```print```
@@ -81,8 +83,8 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 
 ### Exemples
 ```vy
-print "Bienvenue sur VYRN"
-print "Une autre ligne"
+print("Bienvenue sur VYRN");
+print("Une autre ligne");
 ```
 
 ### Limitations actuelles
@@ -104,7 +106,7 @@ graph LR
 ### Description des composants
 - Frontend :
     - Éditeur de code (textarea)
-    - Bouton exécution déclenchant une requête POST à ```/run```
+    - Bouton exécution déclenchant une requête POST à la racine ```/```
     - Affichage des résultats
 - Serveur Python :
     - Service HTTP minimaliste (```http.server```)
