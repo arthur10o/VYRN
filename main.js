@@ -47,6 +47,8 @@ function highlight(text) {
     text = text.replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>');
     text = text.replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>');
 
+    text = text.replace(/\n/g, '<br>');
+
     return text;
 }
 
@@ -86,6 +88,61 @@ function restoreCaretPosition(context, pos) {
     SEL.addRange(RANGE);
 }
 
+function getCaretCharacterOffsetWithin(element) {
+    const SEL = window.getSelection();
+    let caretOffset = 0;
+    if (SEL.rangeCount > 0) {
+        const RANGE = SEL.getRangeAt(0);
+        const PRE_CARET_RANGE = RANGE.cloneRange();
+        PRE_CARET_RANGE.selectNodeContents(element);
+        PRE_CARET_RANGE.setEnd(RANGE.endContainer, RANGE.endOffset);
+        caretOffset = PRE_CARET_RANGE.toString().length;
+    }
+    return caretOffset;
+}
+
+function setCaretPosition(element, offset) {
+    let charIndex = 0;
+    const RANGE = document.createRange();
+    RANGE.setStart(element, 0);
+    RANGE.collapse(true);
+
+    const NODE_STACK = [element];
+    let node, found = false;
+
+    while (!found && (node = NODE_STACK.pop())) {
+        if (node.nodeType === 3) {
+            const NEXT_CHAR_INDEX = charIndex + node.length;
+            if (offset <= NEXT_CHAR_INDEX) {
+                RANGE.setStart(node, offset - charIndex);
+                RANGE.collapse(true);
+                found = true;
+            } else {
+                charIndex = NEXT_CHAR_INDEX;
+            }
+        } else {
+            let i = node.childNodes.length;
+            while (i--) {
+                NODE_STACK.push(node.childNodes[i]);
+            }
+        }
+    }
+
+    const SEL = window.getSelection();
+    SEL.removeAllRanges();
+    SEL.addRange(RANGE);
+}
+
+function getPlainTextWithLineBreaks(element) {
+    let html = element.innerHTML;
+
+    html = html.replace(/<br\s*\/?>/gi, '\n');
+
+    const TEMP_DIV = document.createElement('div');
+    TEMP_DIV.innerHTML = html;
+    return TEMP_DIV.textContent;
+}
+
 EDITOR.addEventListener('input', () => {
     const CARET_POS = saveCaretPosition(EDITOR);
     const RAW_TEXT = EDITOR.innerText;
@@ -102,17 +159,26 @@ EDITOR.addEventListener('keydown', e => {
         if (!selection.rangeCount) return;
 
         const range = selection.getRangeAt(0);
-        const br = document.createElement('br');
-        const div = document.createElement('div');
-        div.appendChild(br);
-
         range.deleteContents();
-        range.insertNode(div);
 
-        range.setStart(div, 1);
+        const br = document.createElement('br');
+        const textNode = document.createTextNode('\u200B');
+
+        range.insertNode(br);
+        range.setStartAfter(br);
+        range.insertNode(textNode);
+        range.setStart(textNode, 1);
         range.collapse(true);
 
         selection.removeAllRanges();
         selection.addRange(range);
+
+        const RAW_TEXT = getPlainTextWithLineBreaks(EDITOR);
+        const CARET_POS = getCaretCharacterOffsetWithin(EDITOR);
+        const HIGHLIGHTED = highlight(RAW_TEXT);
+        EDITOR.innerHTML = HIGHLIGHTED;
+        setCaretPosition(EDITOR, CARET_POS);
+
+        return;
     }
 });
