@@ -10,8 +10,9 @@ class PrintNode:
         self.value = value
 
 class LetNode:
-    def __init__(self, name, value):
+    def __init__(self, name, var_type, value):
         self.name = name
+        self.type = var_type
         self.value = value
 
 class PrintVarNode:
@@ -38,14 +39,32 @@ class Parser:
                     statements.append(PrintVarNode(var_match.group(1)))
                 else:
                     raise SyntaxError("Invalid print syntax: " + stmt)
+                
             elif stmt.startswith('let '):
-                match = re.match(r'let\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*["\'](.*?)["\']', stmt)
+                match = re.match(r'let\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)', stmt)
                 if match:
                     var_name = match.group(1)
-                    value = match.group(2)
-                    statements.append(LetNode(var_name, value))
+                    raw_value = match.group(2).strip()
+                    if (raw_value.startswith('"') and raw_value.endswith('"')) or \
+                       (raw_value.startswith("'") and raw_value.endswith("'")):
+                            var_type = "string"
+                            value = raw_value[1:-1]
+                    elif raw_value.lower() == "true" or raw_value.lower() == "false":
+                        var_type = "bool"
+                        value = raw_value.lower()
+                    elif re.match(r'^-?\d+$', raw_value):
+                        var_type = "int"
+                        value = raw_value
+                    elif re.match(r'^-?\d+\.\d*$', raw_value):
+                        var_type = "float"
+                        value = raw_value
+                    else:
+                        raise SyntaxError("Invalid value in variable declaration: " + stmt)
+                    
+                    statements.append(LetNode(var_name, var_type, value))
                 else:
                     raise SyntaxError("Invalid variable declaration: " + stmt)
+                
             else:
                 raise SyntaxError("Unknown or invalid command: " + stmt)
         
@@ -64,11 +83,21 @@ class CodeGenerator:
         for node in ast:
             if isinstance(node, LetNode):
                 var_name = node.name
+                var_type = node.type
                 var_value = node.value
-                variables.add(var_name)
-                lines.append(f'    std::string {var_name} = "{var_value}";')
+
+                if var_type == "string":
+                    lines.append(f'    std::string {var_name} = "{var_value}";')
+                elif var_type == "int":
+                    lines.append(f'    int {var_name} = {var_value};')
+                elif var_type == "float":
+                    lines.append(f'    float {var_name} = {var_value};')
+                elif var_type == "bool":
+                    bool_val = "true" if var_value == "true" else "false"
+                    lines.append(f'    bool {var_name} = {bool_val};')
+
             elif isinstance(node, PrintNode):
-                lines.append(f'    std::cout << "{node.value}" << std::endl;')
+                lines.append(f'    std::cout << u8"{node.value}" << std::endl;')
             elif isinstance(node, PrintVarNode):
                 lines.append(f'    std::cout << {node.var_name} << std::endl;')
         lines.append('    return 0;')
@@ -123,11 +152,11 @@ class SimpleHandler(BaseHTTPRequestHandler):
             generator = CodeGenerator()
             cpp_code = generator.generate(ast)
 
-            with open("temp.cpp", "w") as f:
+            with open("temp.cpp", "w", encoding = "utf-8") as f:
                 f.write(cpp_code)
 
             subprocess.run(["g++", "temp.cpp", "-o", "temp_exec"], check=True)
-            output = subprocess.check_output(["./temp_exec.exe"]).decode()
+            output = subprocess.check_output(["./temp_exec.exe"]).decode('utf-8')
 
             os.remove("temp.cpp")
             os.remove("temp_exec.exe")
