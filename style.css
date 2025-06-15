@@ -1,0 +1,70 @@
+body {
+    margin: 0;
+    font-family: 'Fira Code', monospace;
+    background: #1e1e2f;
+    color: #f8f8f2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 1000px;
+    background: #2b2b40;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+header h1 {
+    text-align: center;
+    color: #c792ea;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+#editor {
+    width: 100%;
+    height: 300px;
+    background: #1e1e2f;
+    border: none;
+    border-radius: 8px;
+    color: #f8f8f2;
+    font-size: 1em;
+    padding: 15px;
+    resize: vertical;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+}
+
+.controls {
+    text-align: right;
+    margin-top: 10px;
+}
+
+button {
+    background: linear-gradient(135deg, #6a5acd, #8a2be2);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    font-size: 1em;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #8a2be2, #6a5acd);
+}
+
+#output {
+    background: #1e1e2f;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+    min-height: 100px;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    color: #a6e22e;
+}
