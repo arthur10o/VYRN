@@ -2,6 +2,48 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import subprocess
 import threading
+import re
+import os
+
+class PrintNode:
+    def __init__(self, value):
+        self.value = value
+
+class Parser:
+    def parse(self, source):
+        code = source.strip()
+        statements = []
+
+        code = re.sub(r'//.*', '', code)
+
+        code = code.replace('\n', ' ').replace('\r', '')
+
+        raw_statements = [stmt.strip() for stmt in code.split(';') if stmt.strip()]
+
+        for stmt in raw_statements:
+            if stmt.startswith("print(") and stmt.endswith(")"):
+                match = re.match(r'print\(["\'](.*?)["\']\)', stmt)
+                if match:
+                    statements.append(PrintNode(match.group(1)))
+                else:
+                    raise SyntaxError("Invalid print syntax: " + stmt)
+            else:
+                raise SyntaxError("Unknown or invalid command: " + stmt)
+        
+        return statements
+
+class CodeGenerator:
+    def generate(self, ast):
+        lines = [
+            '#include <iostream>',
+            'int main() {'
+        ]
+        for node in ast:
+            if isinstance(node, PrintNode):
+                lines.append(f'    std::cout << "{node.value}" << std::endl;')
+        lines.append('    return 0;')
+        lines.append('}')
+        return '\n'.join(lines)
 
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -13,7 +55,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.serve_file("style.css", "text/css")
         else:
             self.send_error(404, "File not found")
-    
+
     def serve_file(self, filename, content_type):
         try:
             with open(filename, "rb") as f:
@@ -26,7 +68,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.send_error(500, "Error loading file")
 
     def do_POST(self):
-        length  = int(self.headers.get('Content-Length'))
+        length = int(self.headers.get('Content-Length'))
         body = self.rfile.read(length)
         data = json.loads(body)
 
@@ -38,22 +80,33 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(result.encode())
 
-        print("Automatic server shutdown after processing.")
-        def shutdown_server():
-            httpd.shutdown()
-        threading.Thread(target=shutdown_server).start()
-    
+        #print("Requête traitée. Arrêt automatique du serveur.")
+        #def shutdown_server():
+        #    httpd.shutdown()
+        #threading.Thread(target=shutdown_server).start()
+
     def interpret_code(self, code):
-        if code.strip().startswith("print"):
-            message = code.strip()[6:-1]
-            try:
-                result = subprocess.check_output(['./print_exec', message])
-                return result.decode()
-            except Exception as e:
-                return 'Error C++ : ' + str(e)
-        return 'Unknown order'
+        try:
+            parser = Parser()
+            ast = parser.parse(code)
+
+            generator = CodeGenerator()
+            cpp_code = generator.generate(ast)
+
+            with open("temp.cpp", "w") as f:
+                f.write(cpp_code)
+
+            subprocess.run(["g++", "temp.cpp", "-o", "temp_exec"], check=True)
+            output = subprocess.check_output(["./temp_exec.exe"]).decode()
+
+            os.remove("temp.cpp")
+            os.remove("temp_exec.exe")
+
+            return output
+        except Exception as e:
+            return f"Error: {str(e)}"
 
 if __name__ == '__main__':
     httpd = HTTPServer(('localhost', 5500), SimpleHandler)
-    print('🚀 Python server ready at http://localhost:5500')
+    print('Serveur Python prêt sur http://localhost:5500')
     httpd.serve_forever()
