@@ -15,6 +15,12 @@ class LetNode:
         self.type = var_type
         self.value = value
 
+class AssignNode:
+    def __init__(self, name, value_type, value):
+        self.name = name
+        self.type = value_type
+        self.value = value
+
 class PrintVarNode:
     def __init__(self, var_name):
         self.var_name = var_name
@@ -65,6 +71,30 @@ class Parser:
                 else:
                     raise SyntaxError("Invalid variable declaration: " + stmt)
                 
+            elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*\s*=', stmt):
+                match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$', stmt)
+                if match:
+                    var_name = match.group(1)
+                    raw_value = match.group(2).strip()
+                    if(raw_value.startswith('"') and raw_value.endswith('"')) or \
+                      (raw_value.startswith('"') and raw_value.endswith('"')):
+                        var_type = "string"
+                        value = raw_value[1:-1]
+                    elif raw_value.lower() == 'true' or raw_value.lower() == 'false':
+                        var_type = 'bool'
+                        value = raw_value.lower()
+                    elif re.match(r'^-?\d+$', raw_value):
+                        var_type = "int"
+                        value = raw_value
+                    elif re.match(r'^-?\d+\.\d*$', raw_value):
+                        var_type = "float"
+                        value = raw_value
+                    else:
+                        raise SyntaxError("Invalid value in assignment: " + stmt)
+                    statements.append(AssignNode(var_name, var_type, value))
+                else:
+                    raise SyntaxError("Invalid assignment syntax: " + stmt)
+                
             else:
                 raise SyntaxError("Unknown or invalid command: " + stmt)
         
@@ -78,13 +108,18 @@ class CodeGenerator:
             'int main() {'
         ]
 
-        variables = set()
+        variables = {}
 
         for node in ast:
             if isinstance(node, LetNode):
                 var_name = node.name
                 var_type = node.type
                 var_value = node.value
+
+                if var_name in variables:
+                    raise Exception(f"Variable '{var_name}' already declared")
+                
+                variables[var_name] = var_type
 
                 if var_type == "string":
                     lines.append(f'    std::string {var_name} = "{var_value}";')
@@ -100,6 +135,28 @@ class CodeGenerator:
                 lines.append(f'    std::cout << u8"{node.value}" << std::endl;')
             elif isinstance(node, PrintVarNode):
                 lines.append(f'    std::cout << {node.var_name} << std::endl;')
+            elif isinstance(node, AssignNode):
+                var_name = node.name
+                var_type = node.type
+                var_value = node.value
+
+                if var_name not in variables:
+                    raise Exception(f"Variable '{var_name}' is not declared")
+
+                declared_type = variables[var_name]
+
+                if declared_type != var_type:
+                    raise Exception(f"Type mismatch in assignment to '{var_name}': {declared_type} != {var_type}")
+
+                if var_type == "string":
+                    lines.append(f'    {var_name} = "{var_value}";')
+                elif var_type == "int":
+                    lines.append(f'    {var_name} = {var_value};')
+                elif var_type == "float":
+                    lines.append(f'    {var_name} = {var_value};')
+                elif var_type == "bool":
+                    bool_val = "true" if var_value == "true" else "false"
+                    lines.append(f'    {var_name} = {bool_val};')
         lines.append('    return 0;')
         lines.append('}')
         return '\n'.join(lines)
