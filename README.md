@@ -28,11 +28,11 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 ## Fonctionnalités principales
 
 - **Éditeur Web Intégré** : Interface simple pour écrire, exécuter et afficher les résultats.  
-- **Langage VYRN** : Syntaxe minimaliste, commandes simples (actuellement `print`).  
+- **Langage VYRN** : Syntaxe minimaliste avec support des types bool, string, float et int, et commandes simples (`print` notamment).  
 - **Backend Python** : Serveur HTTP léger pour interpréter et transmettre les commandes.  
-- **Interpréteur C++** : Programme natif pour l’exécution réelle des instructions.  
+- **Interpréteur C++** : Programme natif pour l’exécution réelle des instructions avec gestion des variables typées.  
 - **Communication via JSON** entre le frontend et le backend.  
-- **Arrêt automatique du serveur** après l’exécution pour simplifier le cycle.
+- **Arrêt automatique du serveur** désactivé pour faciliter le développement et les tests.
 
 ---
 
@@ -42,7 +42,7 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 
 - Python 3.x  
 - Navigateur web moderne (Chrome, Firefox, Edge)  
-- (Optionnel) Compilateur C++ pour développer l'interpréteur
+- (Optionnel) Compilateur C++ (`g++`) pour développer l'interpréteur  
 - Assurez-vous que `g++` est dans votre PATH (MinGW pour Windows ou GCC sous Linux/macOS).
 
 ### Étapes
@@ -73,18 +73,30 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 
 ## Langage VYRN — Documentation
 ### Syntaxe de base
-| Commande        | Description                      | Exemple                 | Sortie                 |
-|----------------|----------------------------------|-------------------------|-------------------------|
-| `print("texte");` | Affiche une chaîne de caractères | `print("Hello, World!");` |```Hello, World!``` |
+| Commande            | Description                      | Exemple                   | Sortie           |
+| ------------------- | -------------------------------- | ------------------------- | ---------------- |
+| `print("texte");`   | Affiche une chaîne de caractères | `print("Hello, World!");` | `Hello, World!`  |
+| `let nom = valeur;` | Déclare une variable typée       | `let age = 30;`           | Variable stockée |
 
-- Les chaines doivent être entre guillemets doubles ```" "```
-- Les espaces sont obligatoires après la commande ```print```
-- Les commandes non reconnues retournes une erreur
+- Types supportés : string (texte entre guillemets), bool (```true```/```false```), int (entiers), float (nombres à virgule).
+- Les chaînes doivent être entre guillemets doubles ou simples (```" "``` ou ```' '```).
+- Les commandes non reconnues retournent une erreur.
 
 ### Exemples
 ```vy
-print("Bienvenue sur VYRN");
-print("Une autre ligne");
+let isHappy = true;
+let name = "Alice";
+let pi = 3.14;
+let age = 30;
+
+print("Nom :");
+print(name);
+print("Âge :");
+print(age);
+print("Pi vaut :");
+print(pi);
+print("Heureux ?");
+print(isHappy);
 ```
 
 ### Limitations actuelles
@@ -115,8 +127,8 @@ graph LR
     - Retourne la sortie du programme au frontend
 - Interpréteur C++ :
     - Exécutable natif
-    - Lit l’argument
-    - Retourne le résultat ou message d’erreur
+    - Supporte la déclaration et gestion de variables typées (bool, string, float, int)
+    - Exécute les commandes et retourne la sortie ou message d’erreur
 
 ---
 
@@ -134,7 +146,7 @@ Merci de :
 - [x] IDE web simple (HTML/CSS/JS)
 - [x] Serveur Python minimal
 - [x] Interpréteur C++ pour `print`
-- [ ] Gestion des variables et expressions
+- [x] Gestion des variables et expressions
 - [ ] Structures de contrôle (conditions, boucles)
 - [ ] Mode serveur persistant sans arrêt automatique
 - [ ] Amélioration du parsing et gestion d’erreurs avancée
