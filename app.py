@@ -9,24 +9,43 @@ class PrintNode:
     def __init__(self, value):
         self.value = value
 
+class LetNode:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+class PrintVarNode:
+    def __init__(self, var_name):
+        self.var_name = var_name
+
 class Parser:
     def parse(self, source):
         code = source.strip()
         statements = []
 
         code = re.sub(r'//.*', '', code)
-
         code = code.replace('\n', ' ').replace('\r', '')
 
         raw_statements = [stmt.strip() for stmt in code.split(';') if stmt.strip()]
 
         for stmt in raw_statements:
             if stmt.startswith("print(") and stmt.endswith(")"):
-                match = re.match(r'print\(["\'](.*?)["\']\)', stmt)
-                if match:
-                    statements.append(PrintNode(match.group(1)))
+                str_match = re.match(r'print\(["\'](.*?)["\']\)', stmt)
+                var_match = re.match(r'print\(([a-zA-Z_][a-zA-Z0-9_]*)\)', stmt)
+                if str_match:
+                    statements.append(PrintNode(str_match.group(1)))
+                elif var_match:
+                    statements.append(PrintVarNode(var_match.group(1)))
                 else:
                     raise SyntaxError("Invalid print syntax: " + stmt)
+            elif stmt.startswith('let '):
+                match = re.match(r'let\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*["\'](.*?)["\']', stmt)
+                if match:
+                    var_name = match.group(1)
+                    value = match.group(2)
+                    statements.append(LetNode(var_name, value))
+                else:
+                    raise SyntaxError("Invalid variable declaration: " + stmt)
             else:
                 raise SyntaxError("Unknown or invalid command: " + stmt)
         
@@ -36,11 +55,22 @@ class CodeGenerator:
     def generate(self, ast):
         lines = [
             '#include <iostream>',
+            '#include <string>',
             'int main() {'
         ]
+
+        variables = set()
+
         for node in ast:
-            if isinstance(node, PrintNode):
+            if isinstance(node, LetNode):
+                var_name = node.name
+                var_value = node.value
+                variables.add(var_name)
+                lines.append(f'    std::string {var_name} = "{var_value}";')
+            elif isinstance(node, PrintNode):
                 lines.append(f'    std::cout << "{node.value}" << std::endl;')
+            elif isinstance(node, PrintVarNode):
+                lines.append(f'    std::cout << {node.var_name} << std::endl;')
         lines.append('    return 0;')
         lines.append('}')
         return '\n'.join(lines)
