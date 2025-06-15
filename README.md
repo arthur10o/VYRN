@@ -144,8 +144,19 @@ Merci de :
 ---
 
 ## Licence
-Projet open-source sous licence MIT.
-Voir LICENSE pour plus d’informations.
+
+Ce projet est distribué sous les termes de la **GNU General Public License v3.0 (GPL-3.0)**.  
+Cela signifie que vous êtes libre de :
+
+- **Utiliser** ce logiciel pour tout usage,
+- **Étudier** et **modifier** le code source,
+- **Partager** des copies du logiciel,
+- **Distribuer** vos propres versions, à condition qu'elles soient également sous licence GPL-3.0.
+
+Toute modification ou redistribution du projet doit rester sous la même licence, et le **code source doit être fourni** ou rendu accessible.
+
+Consultez le fichier [`LICENSE`](LICENSE) pour le texte complet de la licence.
+Pour plus d'informations, vous pouvez aussi visiter :  
 
 ---
 
