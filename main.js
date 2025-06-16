@@ -45,6 +45,14 @@ function highlight(text) {
     declaredVariables.clear();
     declaredConstante.clear();
 
+    const STRINGS = [];
+
+    text = text.replace(STRING_PATTERN, match => {
+        const PLACEHOLDER = `__STRING${STRINGS.length}__`;
+        STRINGS.push(match);
+        return PLACEHOLDER;
+    });
+
     const LINES = text.split('\n');
 
     LINES.forEach(line => {
@@ -81,6 +89,11 @@ function highlight(text) {
         declaredConstante.forEach(c => {
             const CONST_PATTERN = new RegExp(`\\b${c}\\b`, `g`);
             codePart = codePart.replace(CONST_PATTERN, match => `%%CONSTANTE%%${match}%%`);
+        });
+
+         STRINGS.forEach((str, i) => {
+            const PLACEHOLDER_REGEX = new RegExp(`__STRING${i}__`, 'g');
+            codePart = codePart.replace(PLACEHOLDER_REGEX, `<span class="string">${str}</span>`);
         });
 
         codePart = codePart

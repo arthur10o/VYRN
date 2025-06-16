@@ -29,6 +29,7 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 
 - **Éditeur Web Intégré** :  Interface web simple pour écrire, envoyer et afficher les résultats du code.
 - **Langage VYRN** : Syntaxe minimaliste avec support des types bool, string, float et int, variables (`let`), constantes (`const`) et affichage (`print`).
+- **Support des références** : possibilité de déclarer une variable ou constante par référence à une autre variable existante.
 - **Coloration syntaxique** : L’éditeur web colore dynamiquement les types, fonctions, variables, constantes, chaînes, booléens et commentaires.
 - **Backend Python** : Serveur HTTP basé sur ```http.server``` qui parse le code, génère du C++ puis compile et exécute ce dernier.
 - **Interpréteur C++** : Le serveur écrit un fichier ```.cpp``` temporaire, compile avec ```g++``` et exécute le binaire pour récupérer la sortie.
@@ -77,46 +78,55 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 | `print("texte");`    | Affiche une chaîne de caractères          | `print("Hello, World!");` | `Hello, World!`  |
 | `print(variable);`   | Affiche la valeur d’une variable          | `print(age);`             | `30`             |
 | `let nom = valeur;`  | Déclare une variable typée                | `let age = 30;`           | Variable stockée |
-| `nom = valeur_deux;` | Redéclaration d'une variable de même type | `age = 32;`               | Variable stockée |
-| `const nom = valeur;` | Déclare une constante typée             | `const pi = 3.14;`        | Constante stockée |
+| `nom = valeur_deux;` | Affecte une nouvelle valeur (même type)   | `age = 32;`               | Variable stockée |
+| `const nom = valeur;`| Déclare une constante typée               | `const pi = 3.14;`        | Constante stockée|
 
 - Types supportés : ```string``` (texte entre guillemets doubles ou simples), ```bool``` (```true```/```false```), ```int``` (entiers), ```float``` (nombres à virgule).
 - Variables et constantes doivent être typées implicitement selon la valeur assignée à la déclaration.
+- Lors d’une réaffectation (```x = 12.5;```), le type doit correspondre exactement au type d'origine.
 - Les constantes ne peuvent pas être réassignées.
 - Les commentaires ```//``` sont supportés en début et en fin de ligne.
 - Toute commande inconnue ou mal formée retourne une erreur.
+- Les erreurs de type à l’assignation provoquent une erreur d’exécution.
 
 ### Exemples
 ```js
-// Déclaration de variables et constantes
-let age = 30;
-const pi = 3.14;
-let isHappy = true;
-let name = "Alice";
+// Déclaration de variables
+let a = 10;
+const b = 20;
+let c = a;
+const d = b;
 
-// Affichage de textes et variables
-print("Nom :");
-print(name);
-print("Âge :");
-print(age);
-print("Pi vaut :");
+// Déclaration de variables de types différents
+let pi = 3.1415;
+const isActive = true;
+let message = "Hello, World!";
+const greeting = message;
+
+// Affichage des valeurs initiales
+print("Valeurs initiales:");
+print(a);
+print(b);
+print(c);
+print(d);
 print(pi);
-print("Heureux ?");
-print(isHappy);
+print(isActive);
+print(message);
+print(greeting);
 
-// Modification de variables
-age = 31;
-name = "Bob";
-isHappy = false;
+// Assignation
+a = 15;
+c = a;
+message = "Nouvelle valeur";
 
-// Affichage après modification
-print("Après modification :");
-print("Nom :");
-print(name);
-print("Âge :");
-print(age);
-print("Heureux ?");
-print(isHappy);
+// Affichage après assignation
+print("Valeurs après assignation:");
+print(a);
+print(c);
+print(message);
+
+// Affichage finale
+print("Fin du programme");
 ```
 
 ### Limitations actuelles
@@ -125,6 +135,7 @@ print(isHappy);
 - Pas encore de structures de contrôle (conditions, boucles, fonctions).
 - Variables et constantes typées implicitement selon la valeur assignée à la déclaration.
 - Les constantes ne peuvent pas être réassignées.
+- Lors d’une réaffectation (```x = 12.5;```), le type doit correspondre exactement au type d'origine.
 - Pas de gestion d’erreurs avancée autre que syntaxique et de type (erreurs runtime non gérées).
 - Pas encore de support pour les commentaires multi-lignes.
 - Pas de support pour les expressions complexes ou opérations arithmétiques/logiques.
@@ -177,6 +188,9 @@ Merci de :
 - [x] Gestion des variables typées et ```print```
 - [x] Ajout du support des constantes (`const`)
 - [x] Coloration syntaxique côté client
+- [x] Ajouter le support des références dans les déclarations  
+- [x] Vérifier strictement le type lors des affectations  
+- [x] Gérer les erreurs de référence et de typage  
 - [ ] Ajout de structures de contrôle (conditions, boucles)
 - [ ] Amélioration de la gestion des erreurs
 - [ ] Support des fonctions et modules

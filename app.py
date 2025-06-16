@@ -24,10 +24,11 @@ class ConstNode:
         self.is_reference = is_reference
 
 class AssignNode:
-    def __init__(self, name, value_type, value):
+    def __init__(self, name, value_type, value, is_reference = False):
         self.name = name
         self.type = value_type
         self.value = value
+        self.is_reference = is_reference
 
 class PrintVarNode:
     def __init__(self, var_name):
@@ -125,18 +126,26 @@ class Parser:
                       (raw_value.startswith("'") and raw_value.endswith("'")):
                         var_type = "string"
                         value = raw_value[1:-1]
+                        is_reference = False
                     elif raw_value.lower() == 'true' or raw_value.lower() == 'false':
                         var_type = 'bool'
                         value = raw_value.lower()
+                        is_reference = False
                     elif re.match(r'^-?\d+$', raw_value):
                         var_type = "int"
                         value = raw_value
+                        is_reference = False
                     elif re.match(r'^-?\d+\.\d*$', raw_value):
                         var_type = "float"
                         value = raw_value
+                        is_reference = False
+                    elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
+                        var_type = None
+                        value = raw_value
+                        is_reference = True
                     else:
                         raise SyntaxError("Invalid value in assignment: " + stmt)
-                    statements.append(AssignNode(var_name, var_type, value))
+                    statements.append(AssignNode(var_name, var_type, value, is_reference))
                 else:
                     raise SyntaxError("Invalid assignment syntax: " + stmt)
                 
@@ -167,6 +176,17 @@ class CodeGenerator:
                 if is_ref:
                     if var_value in variables:
                         ref_type = variables[var_value]
+                        variables[var_name] = ref_type
+                        if ref_type == "string":
+                            lines.append(f'    std::string {var_name} = {var_value};')
+                        elif ref_type == "int":
+                            lines.append(f'    int {var_name} = {var_value};')
+                        elif ref_type == "float":
+                            lines.append(f'    float {var_name} = {var_value};')
+                        elif ref_type == "bool":
+                            lines.append(f'    bool {var_name} = {var_value};')
+                    elif var_value in constante:
+                        ref_type = constante[var_value]
                         variables[var_name] = ref_type
                         if ref_type == "string":
                             lines.append(f'    std::string {var_name} = {var_value};')
@@ -210,6 +230,17 @@ class CodeGenerator:
                             lines.append(f'    const float {const_name} = {const_value};')
                         elif ref_type == "bool":
                             lines.append(f'    const bool {const_name} = {const_value};')
+                    elif const_value in constante:
+                        ref_type = constante[const_value]
+                        constante[const_name] = ref_type
+                        if ref_type == "string":
+                            lines.append(f'    const std::string {const_name} = {const_value};')
+                        elif ref_type == "int":
+                            lines.append(f'    const int {const_name} = {const_value};')
+                        elif ref_type == "float":
+                            lines.append(f'    const float {const_name} = {const_value};')
+                        elif ref_type == "bool":
+                            lines.append(f'    const bool {const_name} = {const_value};')
                     else:
                         raise Exception(f"Reference variable '{const_value}' not declared")
                 else:
@@ -231,6 +262,7 @@ class CodeGenerator:
                 var_name = node.name
                 var_type = node.type
                 var_value = node.value
+                is_ref = getattr(node, 'is_reference', False)
 
                 if var_name in constante:
                     raise Exception(f"Invalid assignment: '{var_name}' is a constant and cannot be reassigned (current value: {var_value})")
@@ -240,18 +272,32 @@ class CodeGenerator:
 
                 declared_type = variables[var_name]
 
-                if declared_type != var_type:
-                    raise Exception(f"Type mismatch in assignment to '{var_name}': {declared_type} != {var_type}")
+                if is_ref:
+                    if var_value in variables:
+                        rhs_type = variables[var_value]
+                        if rhs_type != declared_type:
+                            raise Exception(f"Type mismatch in assignment: {declared_type} != {rhs_type}")
+                        lines.append(f'    {var_name} = {var_value};')
+                    elif var_value in constante:
+                        rhs_type = constante[var_value]
+                        if rhs_type != declared_type:
+                            raise Exception(f"Type mismatch in assignment: {declared_type} != {rhs_type}")
+                        lines.append(f'    {var_name} = {var_value};')
+                    else:
+                        raise Exception(f"Reference variable '{var_value}' not declared")
+                else:
+                    if declared_type != var_type:
+                        raise Exception(f"Type mismatch in assignment to '{var_name}': {declared_type} != {var_type}")
 
-                if var_type == "string":
-                    lines.append(f'    {var_name} = "{var_value}";')
-                elif var_type == "int":
-                    lines.append(f'    {var_name} = {var_value};')
-                elif var_type == "float":
-                    lines.append(f'    {var_name} = {var_value};')
-                elif var_type == "bool":
-                    bool_val = "true" if var_value == "true" else "false"
-                    lines.append(f'    {var_name} = {bool_val};')
+                    if var_type == "string":
+                        lines.append(f'    {var_name} = "{var_value}";')
+                    elif var_type == "int":
+                        lines.append(f'    {var_name} = {var_value};')
+                    elif var_type == "float":
+                        lines.append(f'    {var_name} = {var_value};')
+                    elif var_type == "bool":
+                        bool_val = "true" if var_value == "true" else "false"
+                        lines.append(f'    {var_name} = {bool_val};')
         lines.append('    return 0;')
         lines.append('}')
         return '\n'.join(lines)
