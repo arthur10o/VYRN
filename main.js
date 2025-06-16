@@ -1,5 +1,5 @@
 function run_code() {
-    const CODE = document.getElementById('editor').innerText;
+    const CODE = cleanText(document.getElementById('editor').innerText);
 
     fetch('/run', {
         method: 'POST',
@@ -32,24 +32,35 @@ function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function cleanText(text) {
+    return text.replace(/[\u200B-\u200D\uFEFF]/g, '');
+}
+
 function highlight(text) {
     text = escapeHtml(text);
 
-    text = text.replace(COMMENT_PATTERN, match => `%%COMMENT%%${match}%%`);
-    text = text.replace(STRING_PATTERN, match => `%%STRING%%${match}%%`);
-    text = text.replace(KEYWORD_PATTERN, match => `%%KEYWORD%%${match}%%`);
-    text = text.replace(NUMBER_PATTERN, match => `%%NUMBER%%${match}%%`);
-    text = text.replace(BOOL_PATTERN, match => `%%BOOL%%${match}%%`);
+    const LINES = text.split('\n');
+    const HIGHLIGHTED_LINES = LINES.map(line => {
+        line = cleanText(line);
+        const COMMENT_MATCH = line.match(/^(\s*\/\/.*)/);
+        if (COMMENT_MATCH) {
+            return `<span class="comment">${COMMENT_MATCH[1]}</span>`;
+        }
 
-    text = text.replace(/%%COMMENT%%(.*?)%%/g, '<span class="comment">$1</span>');
-    text = text.replace(/%%STRING%%(.*?)%%/g, '<span class="string">$1</span>');
-    text = text.replace(/%%KEYWORD%%(.*?)%%/g, '<span class="keyword">$1</span>');
-    text = text.replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>');
-    text = text.replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>');
+        line = line.replace(STRING_PATTERN, match => `%%STRING%%${match}%%`);
+        line = line.replace(KEYWORD_PATTERN, match => `%%KEYWORD%%${match}%%`);
+        line = line.replace(NUMBER_PATTERN, match => `%%NUMBER%%${match}%%`);
+        line = line.replace(BOOL_PATTERN, match => `%%BOOL%%${match}%%`);
 
-    text = text.replace(/\n/g, '<br>');
+        line = line.replace(/%%STRING%%(.*?)%%/g, '<span class="string">$1</span>');
+        line = line.replace(/%%KEYWORD%%(.*?)%%/g, '<span class="keyword">$1</span>');
+        line = line.replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>');
+        line = line.replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>');
 
-    return text;
+        return line;
+    });
+
+    return HIGHLIGHTED_LINES.join('<br>');
 }
 
 function saveCaretPosition(context){
@@ -154,24 +165,21 @@ EDITOR.addEventListener('input', () => {
 EDITOR.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
         e.preventDefault();
-
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-
-        const range = selection.getRangeAt(0);
-        range.deleteContents();
+        const SELECTION = window.getSelection();
+        const RANGE = SELECTION.getRangeAt(0);
+        RANGE.deleteContents();
 
         const br = document.createElement('br');
         const textNode = document.createTextNode('\u200B');
 
-        range.insertNode(br);
-        range.setStartAfter(br);
-        range.insertNode(textNode);
+        RANGE.insertNode(br);
+        RANGE.setStartAfter(br);
+        RANGE.insertNode(textNode);
         range.setStart(textNode, 1);
         range.collapse(true);
 
-        selection.removeAllRanges();
-        selection.addRange(range);
+        SELECTION.removeAllRanges();
+        SELECTION.addRange(RANGE);
 
         const RAW_TEXT = getPlainTextWithLineBreaks(EDITOR);
         const CARET_POS = getCaretCharacterOffsetWithin(EDITOR);
