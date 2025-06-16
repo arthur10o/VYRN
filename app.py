@@ -164,14 +164,17 @@ class CodeGenerator:
 
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/" or self.path == "/index.html":
-            self.serve_file("index.html", "text/html")
-        elif self.path == "/main.js":
-            self.serve_file("main.js", "application/javascript")
-        elif self.path == "/style.css":
-            self.serve_file("style.css", "text/css")
-        else:
-            self.send_error(404, "File not found")
+        try:
+            if self.path == "/" or self.path == "/index.html":
+                self.serve_file("index.html", "text/html")
+            elif self.path == "/main.js":
+                self.serve_file("main.js", "application/javascript")
+            elif self.path == "/style.css":
+                self.serve_file("style.css", "text/css")
+            else:
+                self.send_error(404, "File not found")
+        except Exception as e:
+            self.send_error(500, f"Internal server error : {e}")
 
     def serve_file(self, filename, content_type):
         try:
@@ -181,26 +184,33 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", content_type)
             self.end_headers()
             self.wfile.write(content)
-        except:
-            self.send_error(500, "Error loading file")
+        except FileNotFoundError:
+            self.send_error(404, f'File not found : {filename}')
+        except Exception as e:
+            self.send_error(500, f"Error loading file : {e}")
 
     def do_POST(self):
-        length = int(self.headers.get('Content-Length'))
-        body = self.rfile.read(length)
-        data = json.loads(body)
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            data = json.loads(body)
 
-        code = data.get('code', '')
-        result = self.interpret_code(code)
+            code = data.get('code', '')
+            result = self.interpret_code(code)
 
-        self.send_response(200)
-        self.send_header('Content-Type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(result.encode())
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(result.encode())
 
-        #print("Requête traitée. Arrêt automatique du serveur.")
-        #def shutdown_server():
-        #    httpd.shutdown()
-        #threading.Thread(target=shutdown_server).start()
+            #print("Request processed. Automatic server shutdown.")
+            #def shutdown_server():
+            #    httpd.shutdown()
+            #threading.Thread(target=shutdown_server).start()
+        except json.JSONDecodeError:
+            self.send_error(400, "Invalid JSON data")
+        except Exception as e:
+            self.send_error(500, f"Internal server error : {e}")
 
     def interpret_code(self, code):
         try:
@@ -220,8 +230,12 @@ class SimpleHandler(BaseHTTPRequestHandler):
             os.remove("temp_exec.exe")
 
             return output
+        except SyntaxError as se:
+            return f"Syntaxe Error : {str(se)}"
+        except subprocess.CalledProcessError as cpe:
+            return f"Compilation or Execution Error : {str(cpe)}"
         except Exception as e:
-            return f"Error: {str(e)}"
+            return f"Unexpected Error : {str(e)}"
 
 if __name__ == '__main__':
     httpd = HTTPServer(('localhost', 5500), SimpleHandler)
