@@ -101,7 +101,7 @@ print("Heureux ?");
 print(isHappy);
 
 // Modification de variables
-name = Tom;
+name = "Tom";
 pi = 3.141592;
 age = 20;
 isHappy = false;
