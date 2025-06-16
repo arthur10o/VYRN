@@ -31,14 +31,16 @@ class AssignNode:
         self.is_reference = is_reference
 
 class BinaryOpNode:
-    def __init__(self, right, left, operator):
-        self.right = right
+    def __init__(self, left, right, operator):
         self.left = left
+        self.right = right
         self.operator = operator
 
 class PrintVarNode:
     def __init__(self, var_name):
         self.var_name = var_name
+
+import re
 
 class Parser:
     def parse(self, source):
@@ -52,172 +54,87 @@ class Parser:
 
         for stmt in raw_statements:
             if stmt.startswith("print(") and stmt.endswith(")"):
-                str_match = re.match(r'print\(["\'](.*?)["\']\)', stmt)
-                var_match = re.match(r'print\(([a-zA-Z_][a-zA-Z0-9_]*)\)', stmt)
-                if str_match:
-                    statements.append(PrintNode(str_match.group(1)))
-                elif var_match:
-                    statements.append(PrintVarNode(var_match.group(1)))
-                else:
-                    raise SyntaxError("Invalid print syntax: " + stmt)
-                
-            elif stmt.startswith('let ') or stmt.startswith('const '):
-                match_var = re.match(r'let\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)', stmt)
-                match_const = re.match(r'const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)', stmt)
-                if match_var:
-                    var_name = match_var.group(1)
-                    raw_value = match_var.group(2).strip()
-                    if (raw_value.startswith('"') and raw_value.endswith('"')) or \
-                       (raw_value.startswith("'") and raw_value.endswith("'")):
-                            var_type = "string"
-                            value = raw_value[1:-1]
-                            is_reference = False
-                    elif raw_value.lower() == "true" or raw_value.lower() == "false":
-                        var_type = "bool"
-                        value = raw_value.lower()
-                        is_reference = False
-                    elif re.match(r'^-?\d+$', raw_value):
-                        var_type = "int"
-                        value = raw_value
-                        is_reference = False
-                    elif re.match(r'^-?\d+\.\d*$', raw_value):
-                        var_type = "float"
-                        value = raw_value
-                        is_reference = False
-                    elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
-                        var_type = None
-                        value = raw_value
-                        is_reference = True
-                    elif re.match(r'^".*"\s*\+\s*".*"$', raw_value) or re.match(r"^'.*'\s*\+\s*'.*'$", raw_value):
-                        binary_match = re.match(r'^(["\'].*?["\'])\s*\+\s*(["\'].*?["\'])$', raw_value)
-                        if binary_match:
-                            left = binary_match.group(1)
-                            right = binary_match.group(2)
-                            value = BinaryOpNode(right, left, '+')
-                        else:
-                            raise SyntaxError("Invalid string concatenation expression: " + raw_value)
-                    elif re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value):
-                        binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
-                        if binary_match:
-                            left = binary_match.group(1).strip()
-                            op = binary_match.group(2)
-                            right = binary_match.group(3).strip()
-                            value = BinaryOpNode(right, left, op)
-                        else:
-                            raise SyntaxError("Invalid binary expression: " + raw_value)
-                    else:
-                        raise SyntaxError("Invalid value in variable declaration: " + stmt)
-                    
-                    statements.append(LetNode(var_name, var_type, value, is_reference))
-                elif match_const:
-                    const_name = match_const.group(1)
-                    raw_value = match_const.group(2).strip()
-                    if (raw_value.startswith('"') and raw_value.endswith('"')) or \
-                       (raw_value.startswith("'") and raw_value.endswith("'")):
-                            const_type = "string"
-                            value = raw_value[1:-1]
-                            is_reference = False
-                    elif raw_value.lower() == "true" or raw_value.lower() == "false":
-                        const_type = "bool"
-                        value = raw_value.lower()
-                        is_reference = False
-                    elif re.match(r'^-?\d+$', raw_value):
-                        const_type = "int"
-                        value = raw_value
-                        is_reference = False
-                    elif re.match(r'^-?\d+\.\d*$', raw_value):
-                        const_type = "float"
-                        value = raw_value
-                        is_reference = False
-                    elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
-                        const_type = None
-                        value = raw_value
-                        is_reference = True
-                    elif re.match(r'^".*"\s*\+\s*".*"$', raw_value) or re.match(r"^'.*'\s*\+\s*'.*'$", raw_value):
-                        binary_match = re.match(r'^(["\'].*?["\'])\s*\+\s*(["\'].*?["\'])$', raw_value)
-                        if binary_match:
-                            left = binary_match.group(1)
-                            right = binary_match.group(2)
-                            value = BinaryOpNode(right, left, '+')
-                        else:
-                            raise SyntaxError("Invalid string concatenation expression: " + raw_value)
-                    elif re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value):
-                        binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
-                        if binary_match:
-                            left = binary_match.group(1).strip()
-                            op = binary_match.group(2)
-                            right = binary_match.group(3).strip()
-                            value = BinaryOpNode(right, left, op)
-                        else:
-                            raise SyntaxError("Invalid binary expression: " + raw_value)
-                    else:
-                        raise SyntaxError("Invalid value in constante declaration: " + stmt)
-                    
-                    statements.append(ConstNode(const_name, const_type, value, is_reference))
-                else:
-                    raise SyntaxError("Invalid variable declaration: " + stmt)
-                
+                statements.append(self._parse_print(stmt))
+            elif stmt.startswith('let '):
+                statements.append(self._parse_declaration(stmt, is_const=False))
+            elif stmt.startswith('const '):
+                statements.append(self._parse_declaration(stmt, is_const=True))
             elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*\s*=', stmt):
-                match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$', stmt)
-                if match:
-                    var_name = match.group(1)
-                    raw_value = match.group(2).strip()
-                    if(raw_value.startswith('"') and raw_value.endswith('"')) or \
-                      (raw_value.startswith("'") and raw_value.endswith("'")):
-                        var_type = "string"
-                        value = raw_value[1:-1]
-                        is_reference = False
-                    elif raw_value.lower() == 'true' or raw_value.lower() == 'false':
-                        var_type = 'bool'
-                        value = raw_value.lower()
-                        is_reference = False
-                    elif re.match(r'^-?\d+$', raw_value):
-                        var_type = "int"
-                        value = raw_value
-                        is_reference = False
-                    elif re.match(r'^-?\d+\.\d*$', raw_value):
-                        var_type = "float"
-                        value = raw_value
-                        is_reference = False
-                    elif re.match(r'^".*"\s*\+\s*".*"$', raw_value) or re.match(r"^'.*'\s*\+\s*'.*'$", raw_value):
-                        binary_match = re.match(r'^(["\'].*?["\'])\s*\+\s*(["\'].*?["\'])$', raw_value)
-                        if binary_match:
-                            left = binary_match.group(1)
-                            right = binary_match.group(2)
-                            value = BinaryOpNode(right, left, '+')
-                        else:
-                            raise SyntaxError("Invalid string concatenation expression: " + raw_value)
-                    elif re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value):
-                        binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
-                        if binary_match:
-                            left = binary_match.group(1).strip()
-                            op = binary_match.group(2)
-                            right = binary_match.group(3).strip()
-                            value = BinaryOpNode(right, left, op)
-                        else:
-                            raise SyntaxError("Invalid binary expression: " + raw_value)
-                    elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
-                        var_type = None
-                        value = raw_value
-                        is_reference = True
-                    else:
-                        raise SyntaxError("Invalid value in assignment: " + stmt)
-                    statements.append(AssignNode(var_name, var_type, value, is_reference))
-                else:
-                    raise SyntaxError("Invalid assignment syntax: " + stmt)
-            elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*\s*\+\s*[a-zA-Z_][a-zA-Z0-9_]*$', stmt):
-                binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
-                if binary_match:
-                    left = binary_match.group(1).strip()
-                    op = binary_match.group(2)
-                    right = binary_match.group(3).strip()
-                    value = BinaryOpNode(right, left, op)
-                else:
-                    raise SyntaxError("Invalid binary expression: " + raw_value)
+                statements.append(self._parse_assignment(stmt))
             else:
                 raise SyntaxError("Unknown or invalid command: " + stmt)
-        
+
         return statements
+
+    def _parse_print(self, stmt):
+        str_match = re.match(r'print\(["\'](.*?)["\']\)', stmt)
+        var_match = re.match(r'print\(([a-zA-Z_][a-zA-Z0-9_]*)\)', stmt)
+        if str_match:
+            return PrintNode(str_match.group(1))
+        elif var_match:
+            return PrintVarNode(var_match.group(1))
+        else:
+            raise SyntaxError("Invalid print syntax: " + stmt)
+
+    def _parse_declaration(self, stmt, is_const):
+        pattern = r'(const|let)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)'
+        match = re.match(pattern, stmt)
+        if not match:
+            raise SyntaxError("Invalid variable declaration: " + stmt)
+        _, name, raw_value = match.groups()
+        raw_value = raw_value.strip()
+
+        if name in {"int", "float", "string", "main", "true", "false"}:
+            raise SyntaxError(f"Reserved keyword used as variable name: {name}")
+
+        var_type, value, is_reference = self._parse_value(raw_value)
+
+        if is_const:
+            return ConstNode(name, var_type, value, is_reference)
+        else:
+            return LetNode(name, var_type, value, is_reference)
+
+    def _parse_assignment(self, stmt):
+        match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$', stmt)
+        if not match:
+            raise SyntaxError("Invalid assignment syntax: " + stmt)
+        name, raw_value = match.groups()
+        raw_value = raw_value.strip()
+        
+        if name in {"int", "float", "string", "bool", "main", "true", "false"}:
+            raise SyntaxError(f"Invalid assignment to reserved name: {name}")
+
+        var_type, value, is_reference = self._parse_value(raw_value)
+        return AssignNode(name, var_type, value, is_reference)
+
+    def _parse_value(self, raw_value):
+        if (raw_value.startswith('"') and raw_value.endswith('"')) or \
+           (raw_value.startswith("'") and raw_value.endswith("'")):
+            return "string", raw_value[1:-1], False
+
+        if raw_value.lower() == "true" or raw_value.lower() == "false":
+            return "bool", raw_value.lower(), False
+
+        if re.match(r'^-?\d+$', raw_value):
+            return "int", raw_value, False
+
+        if re.match(r'^-?\d+\.\d*$', raw_value):
+            return "float", raw_value, False
+
+        if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
+            return None, raw_value, True
+
+        binary_match = re.match(r'^(["\'].*?["\'])\s*\+\s*(["\'].*?["\'])$', raw_value)
+        if binary_match:
+            left, right = binary_match.groups()
+            return None, BinaryOpNode(left, right, '+'), False
+
+        binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
+        if binary_match:
+            left, op, right = binary_match.groups()
+            return None, BinaryOpNode(left.strip(), right.strip(), op), False
+
+        raise SyntaxError("Invalid value in expression: " + raw_value)
 
 class CodeGenerator:
     def generate(self, ast):
@@ -230,175 +147,118 @@ class CodeGenerator:
         ]
 
         variables = {}
-        constante = {}
+        constantes = {}
 
         for node in ast:
-            if isinstance(node, LetNode) and isinstance(node.value, BinaryOpNode):
-                handle_binary_operation(node, lines, variables, constante, is_const=False)
-            elif isinstance(node, ConstNode) and isinstance(node.value, BinaryOpNode):
-                handle_binary_operation(node, lines, variables, constante, is_const=True)
-            elif isinstance(node, LetNode):
-                var_name = node.name
-                var_type = node.type
-                var_value = node.value
-                is_ref = getattr(node, 'is_reference', False)
+            if isinstance(node, (LetNode, ConstNode)) and isinstance(node.value, BinaryOpNode):
+                handle_binary_operation(node, lines, variables, constantes, is_const = isinstance(node, ConstNode))
+                continue
 
-                if is_ref:
-                    if var_value in variables:
-                        ref_type = variables[var_value]
-                        variables[var_name] = ref_type
-                        if ref_type == "string":
-                            lines.append(f'    std::string {var_name} = {var_value};')
-                        elif ref_type == "int":
-                            lines.append(f'    int {var_name} = {var_value};')
-                        elif ref_type == "float":
-                            lines.append(f'    float {var_name} = {var_value};')
-                        elif ref_type == "bool":
-                            lines.append(f'    bool {var_name} = {var_value};')
-                    elif var_value in constante:
-                        ref_type = constante[var_value]
-                        variables[var_name] = ref_type
-                        if ref_type == "string":
-                            lines.append(f'    std::string {var_name} = {var_value};')
-                        elif ref_type == "int":
-                            lines.append(f'    int {var_name} = {var_value};')
-                        elif ref_type == "float":
-                            lines.append(f'    float {var_name} = {var_value};')
-                        elif ref_type == "bool":
-                            lines.append(f'    bool {var_name} = {var_value};')
-                    else:
-                        raise Exception(f"Reference variable '{var_value}' not declared")
-                else:
-                    variables[var_name] = var_type
-                    if var_type == "string":
-                        lines.append(f'    std::string {var_name} = "{var_value}";')
-                    elif var_type == "int":
-                        lines.append(f'    int {var_name} = {var_value};')
-                    elif var_type == "float":
-                        lines.append(f'    float {var_name} = {var_value};')
-                    elif var_type == "bool":
-                        bool_val = "true" if var_value == "true" else "false"
-                        lines.append(f'    bool {var_name} = {bool_val};')
+            if isinstance(node, LetNode):
+                self._declare_variable(node, lines, variables, constantes, is_const=False)
+
             elif isinstance(node, ConstNode):
-                const_name = node.name
-                const_type = node.type
-                const_value = node.value
-                is_ref = getattr(node, 'is_reference', False)
+                self._declare_variable(node, lines, variables, constantes, is_const=True)
 
-                if const_name in constante:
-                    raise Exception(f"Variable '{const_name}' already declared")
-                
-                if is_ref:
-                    if const_value in variables:
-                        ref_type = variables[const_value]
-                        constante[const_name] = ref_type
-                        if ref_type == "string":
-                            lines.append(f'    const std::string {const_name} = {const_value};')
-                        elif ref_type == "int":
-                            lines.append(f'    const int {const_name} = {const_value};')
-                        elif ref_type == "float":
-                            lines.append(f'    const float {const_name} = {const_value};')
-                        elif ref_type == "bool":
-                            lines.append(f'    const bool {const_name} = {const_value};')
-                    elif const_value in constante:
-                        ref_type = constante[const_value]
-                        constante[const_name] = ref_type
-                        if ref_type == "string":
-                            lines.append(f'    const std::string {const_name} = {const_value};')
-                        elif ref_type == "int":
-                            lines.append(f'    const int {const_name} = {const_value};')
-                        elif ref_type == "float":
-                            lines.append(f'    const float {const_name} = {const_value};')
-                        elif ref_type == "bool":
-                            lines.append(f'    const bool {const_name} = {const_value};')
-                    else:
-                        raise Exception(f"Reference variable '{const_value}' not declared")
-                else:
-                    constante[const_name] = const_type
-                    if const_type == "string":
-                        lines.append(f'    const std::string {const_name} = "{const_value}";')
-                    elif const_type == "int":
-                        lines.append(f'    const int {const_name} = {const_value};')
-                    elif const_type == "float":
-                        lines.append(f'    const float {const_name} = {const_value};')
-                    elif const_type == "bool":
-                        bool_val = "true" if const_value == "true" else "false"
-                        lines.append(f'    const bool {const_name} = {bool_val};')
             elif isinstance(node, PrintNode):
                 lines.append(f'    std::cout << u8"{node.value}" << std::endl;')
+
             elif isinstance(node, PrintVarNode):
                 lines.append(f'    std::cout << {node.var_name} << std::endl;')
+
             elif isinstance(node, AssignNode):
-                var_name = node.name
-                var_type = node.type
-                var_value = node.value
-                is_ref = getattr(node, 'is_reference', False)
-
-                if var_name in constante:
-                    raise Exception(f"Invalid assignment: '{var_name}' is a constant and cannot be reassigned (current value: {var_value})")
-                
-                if var_name not in variables:
-                    raise Exception(f"Variable '{var_name}' is not declared")
-
-                declared_type = variables[var_name]
-
-                if is_ref:
-                    if var_value in variables:
-                        rhs_type = variables[var_value]
-                        if rhs_type != declared_type:
-                            raise Exception(f"Type mismatch in assignment: {declared_type} != {rhs_type}")
-                        lines.append(f'    {var_name} = {var_value};')
-                    elif var_value in constante:
-                        rhs_type = constante[var_value]
-                        if rhs_type != declared_type:
-                            raise Exception(f"Type mismatch in assignment: {declared_type} != {rhs_type}")
-                        lines.append(f'    {var_name} = {var_value};')
-                    else:
-                        raise Exception(f"Reference variable '{var_value}' not declared")
-                else:
-                    if declared_type != var_type:
-                        raise Exception(f"Type mismatch in assignment to '{var_name}': {declared_type} != {var_type}")
-
-                    if var_type == "string":
-                        lines.append(f'    {var_name} = "{var_value}";')
-                    elif var_type == "int":
-                        lines.append(f'    {var_name} = {var_value};')
-                    elif var_type == "float":
-                        lines.append(f'    {var_name} = {var_value};')
-                    elif var_type == "bool":
-                        bool_val = "true" if var_value == "true" else "false"
-                        lines.append(f'    {var_name} = {bool_val};')
+                self._assign_variable(node, lines, variables, constantes)
 
         lines.append('    return 0;')
         lines.append('}')
         return '\n'.join(lines)
 
+    def _declare_variable(self, node, lines, variables, constantes, is_const):
+        name = node.name
+        var_type = node.type
+        value = node.value
+        is_ref = getattr(node, 'is_reference', False)
+        target_dict = constantes if is_const else variables
+
+        if is_const and name in constantes:
+            raise Exception(f"Variable '{name}' already declared")
+
+        if is_ref:
+            ref_type = self._get_reference_type(value, variables, constantes)
+            target_dict[name] = ref_type
+            prefix = 'const ' if is_const else ''
+            lines.append(f'    {prefix}{self._cpp_type(ref_type)} {name} = {value};')
+        else:
+            target_dict[name] = var_type
+            cpp_value = self._format_value(var_type, value)
+            prefix = 'const ' if is_const else ''
+            lines.append(f'    {prefix}{self._cpp_type(var_type)} {name} = {cpp_value};')
+
+    def _assign_variable(self, node, lines, variables, constantes):
+        name = node.name
+        value = node.value
+        var_type = node.type
+        is_ref = getattr(node, 'is_reference', False)
+
+        if name in constantes:
+            raise Exception(f"Cannot assign to constant '{name}'")
+
+        if name not in variables:
+            raise Exception(f"Variable '{name}' is not declared")
+
+        declared_type = variables[name]
+
+        if is_ref:
+            ref_type = self._get_reference_type(value, variables, constantes)
+            if ref_type != declared_type:
+                raise Exception(f"Type mismatch in assignment: {declared_type} != {ref_type}")
+            lines.append(f'    {name} = {value};')
+        else:
+            if declared_type != var_type:
+                raise Exception(f"Type mismatch in assignment to '{name}': {declared_type} != {var_type}")
+            cpp_value = self._format_value(var_type, value)
+            lines.append(f'    {name} = {cpp_value};')
+
+    def _get_reference_type(self, name, variables, constantes):
+        if name in variables:
+            return variables[name]
+        if name in constantes:
+            return constantes[name]
+        raise Exception(f"Reference variable '{name}' not declared")
+
+    def _cpp_type(self, var_type):
+        return {
+            "string": "std::string",
+            "int": "int",
+            "float": "float",
+            "bool": "bool"
+        }.get(var_type, "auto")
+
+    def _format_value(self, var_type, value):
+        if var_type == "string":
+            return f'"{value}"'
+        if var_type == "bool":
+            return "true" if value == "true" else "false"
+        return value
+
 class SimpleHandler(BaseHTTPRequestHandler):
+    STATIC_ROUTES = {
+        "/": ("index.html", "text/html"),
+        "/index.html": ("index.html", "text/html"),
+        "/main.js": ("main.js", "application/javascript"),
+        "/style.css": ("style.css", "text/css"),
+    }
+
     def do_GET(self):
         try:
-            if self.path == "/" or self.path == "/index.html":
-                self.serve_file("index.html", "text/html")
-            elif self.path == "/main.js":
-                self.serve_file("main.js", "application/javascript")
-            elif self.path == "/style.css":
-                self.serve_file("style.css", "text/css")
+            route = self.STATIC_ROUTES.get(self.path)
+            if route:
+                filename, content_type = route
+                self.serve_file(filename, content_type)
             else:
-                self.send_error(404, "File not found")
+                self.respond_error(404, "File not found")
         except Exception as e:
-            self.send_error(500, f"Internal server error : {e}")
-
-    def serve_file(self, filename, content_type):
-        try:
-            with open(filename, "rb") as f:
-                content = f.read()
-            self.send_response(200)
-            self.send_header("Content-Type", content_type)
-            self.end_headers()
-            self.wfile.write(content)
-        except FileNotFoundError:
-            self.send_error(404, f'File not found : {filename}')
-        except Exception as e:
-            self.send_error(500, f"Error loading file : {e}")
+            self.respond_error(500, f"Internal server error: {e}")
 
     def do_POST(self):
         try:
@@ -409,19 +269,33 @@ class SimpleHandler(BaseHTTPRequestHandler):
             code = data.get('code', '')
             result = self.interpret_code(code)
 
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(result.encode())
-
-            #print("Request processed. Automatic server shutdown.")
-            #def shutdown_server():
-            #    httpd.shutdown()
-            #threading.Thread(target=shutdown_server).start()
+            self.respond_text(200, result)
         except json.JSONDecodeError:
-            self.send_error(400, "Invalid JSON data")
+            self.respond_error(400, "Invalid JSON data")
         except Exception as e:
-            self.send_error(500, f"Internal server error : {e}")
+            self.respond_error(500, f"Internal server error: {e}")
+
+    def serve_file(self, filename, content_type):
+        try:
+            with open(filename, "rb") as f:
+                content = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.end_headers()
+            self.wfile.write(content)
+        except FileNotFoundError:
+            self.respond_error(404, f"File not found: {filename}")
+        except Exception as e:
+            self.respond_error(500, f"Error loading file: {e}")
+
+    def respond_text(self, status_code, text):
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'text/plain; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(text.encode('utf-8'))
+
+    def respond_error(self, code, message):
+        self.send_error(code, message)
 
     def interpret_code(self, code):
         try:
@@ -431,8 +305,11 @@ class SimpleHandler(BaseHTTPRequestHandler):
             generator = CodeGenerator()
             cpp_code = generator.generate(ast)
 
-            with open("temp.cpp", "w", encoding = "utf-8") as f:
+            with open("temp.cpp", "w", encoding="utf-8") as f:
                 f.write(cpp_code)
+
+            print("--- Code C++ généré ---")
+            print(cpp_code)
 
             subprocess.run(["g++", "temp.cpp", "-o", "temp_exec"], check=True)
             output = subprocess.check_output(["./temp_exec.exe"]).decode('utf-8')
@@ -442,64 +319,68 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
             return output
         except SyntaxError as se:
-            return f"Syntaxe Error : {str(se)}"
+            return f"Syntax Error: {str(se)}"
         except subprocess.CalledProcessError as cpe:
-            return f"Compilation or Execution Error : {str(cpe)}"
+            return f"Compilation or Execution Error: {str(cpe)}"
         except Exception as e:
-            return f"Unexpected Error : {str(e)}"
-        
-def handle_binary_operation(node, lines, variables, constante, is_const=False):
+            return f"Unexpected Error: {str(e)}"
+
+def handle_binary_operation(node, lines, variables, constantes, is_const=False):
     left = node.value.left
     right = node.value.right
     op = node.value.operator
     var_name = node.name
 
-    def get_type(val):
+    def is_literal(val):
+        return (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'"))
+
+    def as_cpp_string(val):
+        if is_literal(val):
+            return f'{val[:-1]}"' if val.startswith('"') else f'{val[:-1]}\''
+        return val
+
+    def infer_type(val):
         if val in variables:
             return variables[val]
-        elif val in constante:
-            return constante[val]
+        elif val in constantes:
+            return constantes[val]
         elif re.match(r'^-?\d+$', val):
             return "int"
         elif re.match(r'^-?\d+\.\d*$', val):
             return "float"
-        elif (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+        elif is_literal(val):
             return "string"
         else:
-            raise Exception(f"Valeur ou variable non reconnue : {val}")
+            raise Exception(f"Unrecognized value or variable: {val}")
 
-    left_type = get_type(left)
-    right_type = get_type(right)
+    left_type = infer_type(left)
+    right_type = infer_type(right)
 
     if left_type != right_type:
-        raise Exception(f"Type mismatch dans l'opération : {left_type} {op} {right_type}")
+        raise Exception(f"Type mismatch in binary operation: {left_type} {op} {right_type}")
 
     if left_type not in ["int", "float", "string"]:
-        raise Exception(f"L'opération {op} n'est pas supportée pour le type '{left_type}'")
-
-    decl = "const " if is_const else ""
-    cpp_type = {"int": "int", "float": "float", "string": "std::string"}[left_type]
+        raise Exception(f"Operator '{op}' not supported for type '{left_type}'")
 
     if left_type == "string" and op != "+":
-        raise Exception("Seule la concaténation (+) est supportée pour les chaînes")
+        raise Exception("Only '+' is supported for string concatenation")
 
-    def wrap(val, t):
-        if t == "string":
-            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
-                return val
-            else:
-                return val
-        return val
+    cpp_type = {
+        "int": "int",
+        "float": "float",
+        "string": "std::string"
+    }[left_type]
 
-    if left_type == "string":
-        lines.append(f'    {decl}std::string {var_name} = {wrap(left, left_type)} + {wrap(right, right_type)};')
-    else:
-        lines.append(f'    {decl}{cpp_type} {var_name} = {wrap(left, left_type)} {op} {wrap(right, right_type)};')
+    decl = "const " if is_const else ""
 
-    if is_const:
-        constante[var_name] = left_type
-    else:
-        variables[var_name] = left_type
+    left_val = as_cpp_string(left) if left_type == "string" else left
+    right_val = as_cpp_string(right) if right_type == "string" else right
+
+    lines.append(f'    {decl}{cpp_type} {var_name} = {left_val} {op} {right_val};')
+
+    target = constantes if is_const else variables
+    target[var_name] = left_type
+
 
 if __name__ == '__main__':
     httpd = HTTPServer(('localhost', 5500), SimpleHandler)
