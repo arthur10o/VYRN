@@ -7,6 +7,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
+    overflow-y: hidden;
 }
 
 .container {
@@ -22,12 +23,12 @@ header h1 {
     text-align: center;
     color: #c792ea;
     font-size: 2.5em;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 #editor {
     width: 100%;
-    height: 300px;
+    height: 350px;
     background: #1e1e2f;
     color: #f8f8f2;
     font-family: 'Fira Code', monospace;
@@ -78,6 +79,7 @@ button:hover {
     padding: 15px;
     margin-top: 15px;
     min-height: 100px;
+    max-height: 100px;
     white-space: pre-wrap;
     overflow-y: auto;
     color: #a6e22e;
