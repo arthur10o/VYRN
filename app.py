@@ -15,6 +15,12 @@ class LetNode:
         self.type = var_type
         self.value = value
 
+class ConstNode:
+    def __init__(self, name, const_type, value):
+        self.name = name
+        self.type = const_type
+        self.value = value
+
 class AssignNode:
     def __init__(self, name, value_type, value):
         self.name = name
@@ -46,11 +52,12 @@ class Parser:
                 else:
                     raise SyntaxError("Invalid print syntax: " + stmt)
                 
-            elif stmt.startswith('let '):
-                match = re.match(r'let\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)', stmt)
-                if match:
-                    var_name = match.group(1)
-                    raw_value = match.group(2).strip()
+            elif stmt.startswith('let ') or stmt.startswith('const '):
+                match_var = re.match(r'let\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)', stmt)
+                match_const = re.match(r'const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)', stmt)
+                if match_var:
+                    var_name = match_var.group(1)
+                    raw_value = match_var.group(2).strip()
                     if (raw_value.startswith('"') and raw_value.endswith('"')) or \
                        (raw_value.startswith("'") and raw_value.endswith("'")):
                             var_type = "string"
@@ -68,6 +75,26 @@ class Parser:
                         raise SyntaxError("Invalid value in variable declaration: " + stmt)
                     
                     statements.append(LetNode(var_name, var_type, value))
+                elif match_const:
+                    const_name = match_const.group(1)
+                    raw_value = match_const.group(2).strip()
+                    if (raw_value.startswith('"') and raw_value.endswith('"')) or \
+                       (raw_value.startswith("'") and raw_value.endswith("'")):
+                            const_type = "string"
+                            value = raw_value[1:-1]
+                    elif raw_value.lower() == "true" or raw_value.lower() == "false":
+                        const_type = "bool"
+                        value = raw_value.lower()
+                    elif re.match(r'^-?\d+$', raw_value):
+                        const_type = "int"
+                        value = raw_value
+                    elif re.match(r'^-?\d+\.\d*$', raw_value):
+                        const_type = "float"
+                        value = raw_value
+                    else:
+                        raise SyntaxError("Invalid value in variable declaration: " + stmt)
+                    
+                    statements.append(ConstNode(const_name, const_type, value))
                 else:
                     raise SyntaxError("Invalid variable declaration: " + stmt)
                 
@@ -110,6 +137,7 @@ class CodeGenerator:
         ]
 
         variables = {}
+        constante = {}
 
         for node in ast:
             if isinstance(node, LetNode):
@@ -131,7 +159,25 @@ class CodeGenerator:
                 elif var_type == "bool":
                     bool_val = "true" if var_value == "true" else "false"
                     lines.append(f'    bool {var_name} = {bool_val};')
+            if isinstance(node, ConstNode):
+                const_name = node.name
+                const_type = node.type
+                const_value = node.value
 
+                if const_name in constante:
+                    raise Exception(f"Variable '{const_name}' already declared")
+                
+                constante[const_name] = const_type
+
+                if const_type == "string":
+                    lines.append(f'    const std::string {const_name} = "{const_value}";')
+                elif const_type == "int":
+                    lines.append(f'    const int {const_name} = {const_value};')
+                elif const_type == "float":
+                    lines.append(f'    const float {const_name} = {const_value};')
+                elif const_type == "bool":
+                    bool_val = "true" if const_value == "true" else "false"
+                    lines.append(f'    const bool {const_name} = {bool_val};')
             elif isinstance(node, PrintNode):
                 lines.append(f'    std::cout << u8"{node.value}" << std::endl;')
             elif isinstance(node, PrintVarNode):
@@ -141,6 +187,9 @@ class CodeGenerator:
                 var_type = node.type
                 var_value = node.value
 
+                if var_name in constante:
+                    raise Exception(f"Invalid assignment: '{var_name}' is a constant and cannot be reassigned (current value: {var_value})")
+                
                 if var_name not in variables:
                     raise Exception(f"Variable '{var_name}' is not declared")
 

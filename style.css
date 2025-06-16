@@ -48,6 +48,7 @@ header h1 {
 .number  { color: #ecc48d; }
 .comment { color: #71a462; font-style: italic; }
 .variable {color: #8aa6f9; font-weight: 600;}
+.constante {color: #5589fc; font-weight: bold;}
 
 .controls {
     text-align: right;

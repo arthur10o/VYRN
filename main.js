@@ -21,7 +21,7 @@ function run_code() {
 
 const EDITOR = document.getElementById('editor');
 
-const KEYWORD = ['let', 'print'];
+const KEYWORD = ['let', 'print', 'const'];
 const KEYWORD_PATTERN = new RegExp(`\\b(${KEYWORD.join('|')})\\b`, 'g');
 const STRING_PATTERN = /(["'])(?:(?=(\\?))\2.)*?\1/g;
 const NUMBER_PATTERN = /\b\d+(\.\d+)?\b/g;
@@ -29,6 +29,7 @@ const BOOL_PATTERN = /\b(true|false)\b/g;
 const COMMENT_PATTERN = /\/\/.*/g;
 
 let declaredVariables = new Set();
+let declaredConstante = new Set();
 
 function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -41,13 +42,17 @@ function cleanText(text) {
 function highlight(text) {
     text = escapeHtml(text);
     declaredVariables.clear();
+    declaredConstante.clear();
 
     const LINES = text.split('\n');
 
     LINES.forEach(line => {
         const LET_MATCH = line.match(/\blet\s+([a-zA-Z_]\w*)/);
+        const CONST_MATCH = line.match(/\bconst\s+([a-zA-Z_]\w*)/)
         if (LET_MATCH) {
             declaredVariables.add(LET_MATCH[1]);
+        } else if(CONST_MATCH) {
+            declaredConstante.add(CONST_MATCH[1]);
         }
     });
 
@@ -69,12 +74,18 @@ function highlight(text) {
             codePart = codePart.replace(VAR_PATTERN, match => `%%VARIABLE%%${match}%%`);
         });
 
+        declaredConstante.forEach(c => {
+            const CONST_PATTERN = new RegExp(`\\b${c}\\b`, `g`);
+            codePart = codePart.replace(CONST_PATTERN, match => `%%CONSTANTE%%${match}%%`);
+        });
+
         codePart = codePart
             .replace(/%%STRING%%(.*?)%%/g, '<span class="string">$1</span>')
             .replace(/%%KEYWORD%%(.*?)%%/g, '<span class="keyword">$1</span>')
             .replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>')
             .replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>')
-            .replace(/%%VARIABLE%%(.*?)%%/g, '<span class="variable">$1</span>');
+            .replace(/%%VARIABLE%%(.*?)%%/g, '<span class="variable">$1</span>')
+            .replace(/%%CONSTANTE%%(.*?)%%/g, '<span class="constante">$1</span>');
 
         if (commentPart) {
             commentPart = `<span class="comment">${escapeHtml(commentPart)}</span>`;
