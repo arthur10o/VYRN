@@ -40,12 +40,11 @@ function cleanText(text) {
 
 function highlight(text) {
     text = escapeHtml(text);
-
     declaredVariables.clear();
 
     const LINES = text.split('\n');
 
-    LINES.forEach( line => {
+    LINES.forEach(line => {
         const LET_MATCH = line.match(/\blet\s+([a-zA-Z_]\w*)/);
         if (LET_MATCH) {
             declaredVariables.add(LET_MATCH[1]);
@@ -55,28 +54,33 @@ function highlight(text) {
     const HIGHLIGHTED_LINES = LINES.map(line => {
         line = cleanText(line);
 
-        const COMMENT_MATCH = line.match(/^(\s*\/\/.*)/);
-        if (COMMENT_MATCH) {
-            return `<span class="comment">${COMMENT_MATCH[1]}</span>`;
-        }
+        const COMMENT_INDEX = line.indexOf('//');
+        let codePart = COMMENT_INDEX >= 0 ? line.slice(0, COMMENT_INDEX) : line;
+        let commentPart = COMMENT_INDEX >= 0 ? line.slice(COMMENT_INDEX) : '';
 
-        line = line.replace(STRING_PATTERN, match => `%%STRING%%${match}%%`);
-        line = line.replace(KEYWORD_PATTERN, match => `%%KEYWORD%%${match}%%`);
-        line = line.replace(NUMBER_PATTERN, match => `%%NUMBER%%${match}%%`);
-        line = line.replace(BOOL_PATTERN, match => `%%BOOL%%${match}%%`);
+        codePart = codePart
+            .replace(STRING_PATTERN, match => `%%STRING%%${match}%%`)
+            .replace(KEYWORD_PATTERN, match => `%%KEYWORD%%${match}%%`)
+            .replace(NUMBER_PATTERN, match => `%%NUMBER%%${match}%%`)
+            .replace(BOOL_PATTERN, match => `%%BOOL%%${match}%%`);
 
         declaredVariables.forEach(v => {
             const VAR_PATTERN = new RegExp(`\\b${v}\\b`, 'g');
-            line = line.replace(VAR_PATTERN, match => `%%VARIABLE%%${match}%%`);
+            codePart = codePart.replace(VAR_PATTERN, match => `%%VARIABLE%%${match}%%`);
         });
 
-        line = line.replace(/%%STRING%%(.*?)%%/g, '<span class="string">$1</span>');
-        line = line.replace(/%%KEYWORD%%(.*?)%%/g, '<span class="keyword">$1</span>');
-        line = line.replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>');
-        line = line.replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>');
-        line = line.replace(/%%VARIABLE%%(.*?)%%/g, '<span class="variable">$1</span>');
+        codePart = codePart
+            .replace(/%%STRING%%(.*?)%%/g, '<span class="string">$1</span>')
+            .replace(/%%KEYWORD%%(.*?)%%/g, '<span class="keyword">$1</span>')
+            .replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>')
+            .replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>')
+            .replace(/%%VARIABLE%%(.*?)%%/g, '<span class="variable">$1</span>');
 
-        return line;
+        if (commentPart) {
+            commentPart = `<span class="comment">${escapeHtml(commentPart)}</span>`;
+        }
+
+        return codePart + commentPart;
     });
 
     return HIGHLIGHTED_LINES.join('<br>');
