@@ -28,6 +28,8 @@ const NUMBER_PATTERN = /\b\d+(\.\d+)?\b/g;
 const BOOL_PATTERN = /\b(true|false)\b/g;
 const COMMENT_PATTERN = /\/\/.*/g;
 
+let declaredVariables = new Set();
+
 function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -39,9 +41,20 @@ function cleanText(text) {
 function highlight(text) {
     text = escapeHtml(text);
 
+    declaredVariables.clear();
+
     const LINES = text.split('\n');
+
+    LINES.forEach( line => {
+        const LET_MATCH = line.match(/\blet\s+([a-zA-Z_]\w*)/);
+        if (LET_MATCH) {
+            declaredVariables.add(LET_MATCH[1]);
+        }
+    });
+
     const HIGHLIGHTED_LINES = LINES.map(line => {
         line = cleanText(line);
+
         const COMMENT_MATCH = line.match(/^(\s*\/\/.*)/);
         if (COMMENT_MATCH) {
             return `<span class="comment">${COMMENT_MATCH[1]}</span>`;
@@ -52,10 +65,16 @@ function highlight(text) {
         line = line.replace(NUMBER_PATTERN, match => `%%NUMBER%%${match}%%`);
         line = line.replace(BOOL_PATTERN, match => `%%BOOL%%${match}%%`);
 
+        declaredVariables.forEach(v => {
+            const VAR_PATTERN = new RegExp(`\\b${v}\\b`, 'g');
+            line = line.replace(VAR_PATTERN, match => `%%VARIABLE%%${match}%%`);
+        });
+
         line = line.replace(/%%STRING%%(.*?)%%/g, '<span class="string">$1</span>');
         line = line.replace(/%%KEYWORD%%(.*?)%%/g, '<span class="keyword">$1</span>');
         line = line.replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>');
         line = line.replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>');
+        line = line.replace(/%%VARIABLE%%(.*?)%%/g, '<span class="variable">$1</span>');
 
         return line;
     });

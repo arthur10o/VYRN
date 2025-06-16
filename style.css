@@ -47,6 +47,7 @@ header h1 {
 .bool    { color: #718ff0; }
 .number  { color: #ecc48d; }
 .comment { color: #71a462; font-style: italic; }
+.variable {color: #8aa6f9;}
 
 .controls {
     text-align: right;
