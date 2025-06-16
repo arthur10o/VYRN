@@ -28,7 +28,8 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 ## Fonctionnalités principales
 
 - **Éditeur Web Intégré** :  Interface web simple pour écrire, envoyer et afficher les résultats du code.
-- **Langage VYRN** : Syntaxe minimaliste avec support des types bool, string, float et int, et commandes simples (`print` notamment).  
+- **Langage VYRN** : Syntaxe minimaliste avec support des types bool, string, float et int, variables (`let`), constantes (`const`) et affichage (`print`).
+- **Coloration syntaxique** : L’éditeur web colore dynamiquement les types, fonctions, variables, constantes, chaînes, booléens et commentaires.
 - **Backend Python** : Serveur HTTP basé sur ```http.server``` qui parse le code, génère du C++ puis compile et exécute ce dernier.
 - **Interpréteur C++** : Le serveur écrit un fichier ```.cpp``` temporaire, compile avec ```g++``` et exécute le binaire pour récupérer la sortie.
 - **Communication via requêtes HTTP** (GET pour l’interface, POST pour exécuter le code).
@@ -77,20 +78,23 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 | `print(variable);`   | Affiche la valeur d’une variable          | `print(age);`             | `30`             |
 | `let nom = valeur;`  | Déclare une variable typée                | `let age = 30;`           | Variable stockée |
 | `nom = valeur_deux;` | Redéclaration d'une variable de même type | `age = 32;`               | Variable stockée |
+| `const nom = valeur;` | Déclare une constante typée             | `const pi = 3.14;`        | Constante stockée |
 
-- Types supportés : ```string``` (exte entre guillemets doubles ou simples), ```bool``` (```true```/```false```), ```int``` (entiers), ```float``` (nombres à virgule).
-- Les commentaires ```//``` sont supportés en début de ligne.
+- Types supportés : ```string``` (texte entre guillemets doubles ou simples), ```bool``` (```true```/```false```), ```int``` (entiers), ```float``` (nombres à virgule).
+- Variables et constantes doivent être typées implicitement selon la valeur assignée à la déclaration.
+- Les constantes ne peuvent pas être réassignées.
+- Les commentaires ```//``` sont supportés en début et en fin de ligne.
 - Toute commande inconnue ou mal formée retourne une erreur.
 
 ### Exemples
-```vy
-// Déclaration de variables
+```js
+// Déclaration de variables et constantes
+let age = 30;
+const pi = 3.14;
 let isHappy = true;
 let name = "Alice";
-let pi = 3.14;
-let age = 30;
 
-// Affichage de chaînes de caractères et de variables
+// Affichage de textes et variables
 print("Nom :");
 print(name);
 print("Âge :");
@@ -101,28 +105,30 @@ print("Heureux ?");
 print(isHappy);
 
 // Modification de variables
-name = "Tom";
-pi = 3.141592;
-age = 20;
+age = 31;
+name = "Bob";
 isHappy = false;
 
-// Afficher des nouvelles variables après modification
+// Affichage après modification
+print("Après modification :");
 print("Nom :");
 print(name);
 print("Âge :");
 print(age);
-print("Pi vaut :");
-print(pi);
 print("Heureux ?");
 print(isHappy);
 ```
 
 ### Limitations actuelles
-- Commandes supportées : `print`, déclaration et assignation de variables via `let` et `=`.
+- Commandes supportées : `print`, déclaration et assignation de variables via `let` et `=`, déclaration de constantes avec `const`.
 - Types supportés : `bool`, `string`, `int`, `float`.
-- Pas encore de structures de contrôle (conditions, boucles).
-- Variables doivent être typées implicitement selon la valeur assignée à la déclaration.
-- Pas de gestion d’erreurs avancée autre que syntaxique et type.
+- Pas encore de structures de contrôle (conditions, boucles, fonctions).
+- Variables et constantes typées implicitement selon la valeur assignée à la déclaration.
+- Les constantes ne peuvent pas être réassignées.
+- Pas de gestion d’erreurs avancée autre que syntaxique et de type (erreurs runtime non gérées).
+- Pas encore de support pour les commentaires multi-lignes.
+- Pas de support pour les expressions complexes ou opérations arithmétiques/logiques.
+
 
 ---
 
@@ -139,8 +145,9 @@ graph LR
 
 ### Description des composants
 - Frontend (HTML/CSS/JS):
-    - Éditeur web en HTML/CSS/JS, envoie le code en POST JSON.
-    - Affiche la sortie reçue du serveur.
+   + Éditeur web en HTML/CSS/JS :
+   +   - Envoie le code via requêtes POST JSON au serveur.
+   +   - Gère la coloration syntaxique dynamique en temps réel (highlighting personnalisé sans bibliothèque externe).
 - Serveur Python :
     - Service HTTP simple (```http.server```)
     - Parse le code VYRN, génère du code C++ correspondant.
@@ -168,6 +175,8 @@ Merci de :
 - [x] Parsing basique du langage VYRN
 - [x] Génération et compilation dynamique du C++
 - [x] Gestion des variables typées et ```print```
+- [x] Ajout du support des constantes (`const`)
+- [x] Coloration syntaxique côté client
 - [ ] Ajout de structures de contrôle (conditions, boucles)
 - [ ] Amélioration de la gestion des erreurs
 - [ ] Support des fonctions et modules
