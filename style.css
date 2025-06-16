@@ -42,13 +42,15 @@ header h1 {
     display: block;
 }
 
-.keyword { color: #c792ea; }
-.string  { color: #ecc48d; }
-.bool    { color: #718ff0; }
-.number  { color: #ecc48d; }
-.comment { color: #71a462; font-style: italic; }
-.variable {color: #8aa6f9; font-weight: 600;}
-.constante {color: #5589fc; font-weight: bold;}
+.keyword   { color: #b99dd9; font-weight: 500; }      /* Violet doux */
+.string    { color: #e5c994; }                        /* Jaune pastel */
+.bool      { color: #7eaef5; }                        /* Bleu calme */
+.number    { color: #d7b890; }                        /* Ambre clair */
+.comment   { color: #6b8f74; font-style: italic; }    /* Vert-gris apaisant */
+.variable  { color: #9bbcf7; font-weight: 600; }      /* Bleu ciel désaturé */
+.constante { color: #7d9eea; font-weight: bold; }     /* Bleu acier doux */
+.function  { color: #e0c781; font-style: italic; }    /* Doré doux */
+.parens    { color: #b0b7dd; }                        /* Lavande grise */
 
 .controls {
     text-align: right;

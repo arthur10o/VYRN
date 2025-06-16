@@ -21,7 +21,8 @@ function run_code() {
 
 const EDITOR = document.getElementById('editor');
 
-const KEYWORD = ['let', 'print', 'const'];
+const KEYWORD = ['let', 'const', "fn"];
+const FUNCTION_CALL_PATTERN = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(\([^)]*\))/g;
 const KEYWORD_PATTERN = new RegExp(`\\b(${KEYWORD.join('|')})\\b`, 'g');
 const STRING_PATTERN = /(["'])(?:(?=(\\?))\2.)*?\1/g;
 const NUMBER_PATTERN = /\b\d+(\.\d+)?\b/g;
@@ -66,6 +67,9 @@ function highlight(text) {
         codePart = codePart
             .replace(STRING_PATTERN, match => `%%STRING%%${match}%%`)
             .replace(KEYWORD_PATTERN, match => `%%KEYWORD%%${match}%%`)
+            .replace(FUNCTION_CALL_PATTERN, (match, funcName, parens) => 
+                `%%FUNCTION_CALL%%<span class="function">${funcName}</span><span class="parens">${parens}</span>%%`
+            )
             .replace(NUMBER_PATTERN, match => `%%NUMBER%%${match}%%`)
             .replace(BOOL_PATTERN, match => `%%BOOL%%${match}%%`);
 
@@ -82,10 +86,12 @@ function highlight(text) {
         codePart = codePart
             .replace(/%%STRING%%(.*?)%%/g, '<span class="string">$1</span>')
             .replace(/%%KEYWORD%%(.*?)%%/g, '<span class="keyword">$1</span>')
+            .replace(/%%FUNCTION_CALL_PATTERN%%(.*?)%%/g, '<span class="function">$1</span>')
             .replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>')
             .replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>')
             .replace(/%%VARIABLE%%(.*?)%%/g, '<span class="variable">$1</span>')
-            .replace(/%%CONSTANTE%%(.*?)%%/g, '<span class="constante">$1</span>');
+            .replace(/%%CONSTANTE%%(.*?)%%/g, '<span class="constante">$1</span>')
+            .replace(/%%FUNCTION_CALL%%(.*?)%%/g, '$1');
 
         if (commentPart) {
             commentPart = `<span class="comment">${escapeHtml(commentPart)}</span>`;
