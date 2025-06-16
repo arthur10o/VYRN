@@ -44,13 +44,13 @@ header h1 {
 }
 
 .keyword { color: #b99dd9; font-weight: 500; }
-.string { color: #e5c994; }
+.string { color: #c9b892; }
 .bool { color: #7eaef5; }
 .number { color: #d7b890; }
 .comment { color: #6b8f74; font-style: italic; }
 .variable { color: #9bbcf7; font-weight: 600; }
 .constante { color: #7d9eea; font-weight: bold; }
-.function { color: #e0c781; font-style: italic; }
+.function { color: #f38181; font-style: italic;}
 .parens { color: #b0b7dd; }
 
 .controls {
