@@ -30,6 +30,12 @@ class AssignNode:
         self.value = value
         self.is_reference = is_reference
 
+class BinaryOpNode:
+    def __init__(self, right, left, operator):
+        self.right = right
+        self.left = left
+        self.operator = operator
+
 class PrintVarNode:
     def __init__(self, var_name):
         self.var_name = var_name
@@ -82,6 +88,23 @@ class Parser:
                         var_type = None
                         value = raw_value
                         is_reference = True
+                    elif re.match(r'^".*"\s*\+\s*".*"$', raw_value) or re.match(r"^'.*'\s*\+\s*'.*'$", raw_value):
+                        binary_match = re.match(r'^(["\'].*?["\'])\s*\+\s*(["\'].*?["\'])$', raw_value)
+                        if binary_match:
+                            left = binary_match.group(1)
+                            right = binary_match.group(2)
+                            value = BinaryOpNode(right, left, '+')
+                        else:
+                            raise SyntaxError("Invalid string concatenation expression: " + raw_value)
+                    elif re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value):
+                        binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
+                        if binary_match:
+                            left = binary_match.group(1).strip()
+                            op = binary_match.group(2)
+                            right = binary_match.group(3).strip()
+                            value = BinaryOpNode(right, left, op)
+                        else:
+                            raise SyntaxError("Invalid binary expression: " + raw_value)
                     else:
                         raise SyntaxError("Invalid value in variable declaration: " + stmt)
                     
@@ -110,8 +133,25 @@ class Parser:
                         const_type = None
                         value = raw_value
                         is_reference = True
+                    elif re.match(r'^".*"\s*\+\s*".*"$', raw_value) or re.match(r"^'.*'\s*\+\s*'.*'$", raw_value):
+                        binary_match = re.match(r'^(["\'].*?["\'])\s*\+\s*(["\'].*?["\'])$', raw_value)
+                        if binary_match:
+                            left = binary_match.group(1)
+                            right = binary_match.group(2)
+                            value = BinaryOpNode(right, left, '+')
+                        else:
+                            raise SyntaxError("Invalid string concatenation expression: " + raw_value)
+                    elif re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value):
+                        binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
+                        if binary_match:
+                            left = binary_match.group(1).strip()
+                            op = binary_match.group(2)
+                            right = binary_match.group(3).strip()
+                            value = BinaryOpNode(right, left, op)
+                        else:
+                            raise SyntaxError("Invalid binary expression: " + raw_value)
                     else:
-                        raise SyntaxError("Invalid value in variable declaration: " + stmt)
+                        raise SyntaxError("Invalid value in constante declaration: " + stmt)
                     
                     statements.append(ConstNode(const_name, const_type, value, is_reference))
                 else:
@@ -139,6 +179,23 @@ class Parser:
                         var_type = "float"
                         value = raw_value
                         is_reference = False
+                    elif re.match(r'^".*"\s*\+\s*".*"$', raw_value) or re.match(r"^'.*'\s*\+\s*'.*'$", raw_value):
+                        binary_match = re.match(r'^(["\'].*?["\'])\s*\+\s*(["\'].*?["\'])$', raw_value)
+                        if binary_match:
+                            left = binary_match.group(1)
+                            right = binary_match.group(2)
+                            value = BinaryOpNode(right, left, '+')
+                        else:
+                            raise SyntaxError("Invalid string concatenation expression: " + raw_value)
+                    elif re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value):
+                        binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
+                        if binary_match:
+                            left = binary_match.group(1).strip()
+                            op = binary_match.group(2)
+                            right = binary_match.group(3).strip()
+                            value = BinaryOpNode(right, left, op)
+                        else:
+                            raise SyntaxError("Invalid binary expression: " + raw_value)
                     elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
                         var_type = None
                         value = raw_value
@@ -148,7 +205,15 @@ class Parser:
                     statements.append(AssignNode(var_name, var_type, value, is_reference))
                 else:
                     raise SyntaxError("Invalid assignment syntax: " + stmt)
-                
+            elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*\s*\+\s*[a-zA-Z_][a-zA-Z0-9_]*$', stmt):
+                binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
+                if binary_match:
+                    left = binary_match.group(1).strip()
+                    op = binary_match.group(2)
+                    right = binary_match.group(3).strip()
+                    value = BinaryOpNode(right, left, op)
+                else:
+                    raise SyntaxError("Invalid binary expression: " + raw_value)
             else:
                 raise SyntaxError("Unknown or invalid command: " + stmt)
         
@@ -159,6 +224,7 @@ class CodeGenerator:
         lines = [
             '#include <iostream>',
             '#include <string>',
+            'using namespace std::string_literals;',
             'int main() {',
             '    std::cout << std::boolalpha;'
         ]
@@ -167,7 +233,11 @@ class CodeGenerator:
         constante = {}
 
         for node in ast:
-            if isinstance(node, LetNode):
+            if isinstance(node, LetNode) and isinstance(node.value, BinaryOpNode):
+                handle_binary_operation(node, lines, variables, constante, is_const=False)
+            elif isinstance(node, ConstNode) and isinstance(node.value, BinaryOpNode):
+                handle_binary_operation(node, lines, variables, constante, is_const=True)
+            elif isinstance(node, LetNode):
                 var_name = node.name
                 var_type = node.type
                 var_value = node.value
@@ -209,7 +279,7 @@ class CodeGenerator:
                     elif var_type == "bool":
                         bool_val = "true" if var_value == "true" else "false"
                         lines.append(f'    bool {var_name} = {bool_val};')
-            if isinstance(node, ConstNode):
+            elif isinstance(node, ConstNode):
                 const_name = node.name
                 const_type = node.type
                 const_value = node.value
@@ -298,6 +368,7 @@ class CodeGenerator:
                     elif var_type == "bool":
                         bool_val = "true" if var_value == "true" else "false"
                         lines.append(f'    {var_name} = {bool_val};')
+
         lines.append('    return 0;')
         lines.append('}')
         return '\n'.join(lines)
@@ -376,6 +447,59 @@ class SimpleHandler(BaseHTTPRequestHandler):
             return f"Compilation or Execution Error : {str(cpe)}"
         except Exception as e:
             return f"Unexpected Error : {str(e)}"
+        
+def handle_binary_operation(node, lines, variables, constante, is_const=False):
+    left = node.value.left
+    right = node.value.right
+    op = node.value.operator
+    var_name = node.name
+
+    def get_type(val):
+        if val in variables:
+            return variables[val]
+        elif val in constante:
+            return constante[val]
+        elif re.match(r'^-?\d+$', val):
+            return "int"
+        elif re.match(r'^-?\d+\.\d*$', val):
+            return "float"
+        elif (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+            return "string"
+        else:
+            raise Exception(f"Valeur ou variable non reconnue : {val}")
+
+    left_type = get_type(left)
+    right_type = get_type(right)
+
+    if left_type != right_type:
+        raise Exception(f"Type mismatch dans l'opération : {left_type} {op} {right_type}")
+
+    if left_type not in ["int", "float", "string"]:
+        raise Exception(f"L'opération {op} n'est pas supportée pour le type '{left_type}'")
+
+    decl = "const " if is_const else ""
+    cpp_type = {"int": "int", "float": "float", "string": "std::string"}[left_type]
+
+    if left_type == "string" and op != "+":
+        raise Exception("Seule la concaténation (+) est supportée pour les chaînes")
+
+    def wrap(val, t):
+        if t == "string":
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                return val
+            else:
+                return val
+        return val
+
+    if left_type == "string":
+        lines.append(f'    {decl}std::string {var_name} = {wrap(left, left_type)} + {wrap(right, right_type)};')
+    else:
+        lines.append(f'    {decl}{cpp_type} {var_name} = {wrap(left, left_type)} {op} {wrap(right, right_type)};')
+
+    if is_const:
+        constante[var_name] = left_type
+    else:
+        variables[var_name] = left_type
 
 if __name__ == '__main__':
     httpd = HTTPServer(('localhost', 5500), SimpleHandler)
