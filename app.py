@@ -10,16 +10,18 @@ class PrintNode:
         self.value = value
 
 class LetNode:
-    def __init__(self, name, var_type, value):
+    def __init__(self, name, var_type, value, is_reference = False):
         self.name = name
         self.type = var_type
         self.value = value
+        self.is_reference = is_reference
 
 class ConstNode:
-    def __init__(self, name, const_type, value):
+    def __init__(self, name, const_type, value, is_reference = False):
         self.name = name
         self.type = const_type
         self.value = value
+        self.is_reference = is_reference
 
 class AssignNode:
     def __init__(self, name, value_type, value):
@@ -62,19 +64,27 @@ class Parser:
                        (raw_value.startswith("'") and raw_value.endswith("'")):
                             var_type = "string"
                             value = raw_value[1:-1]
+                            is_reference = False
                     elif raw_value.lower() == "true" or raw_value.lower() == "false":
                         var_type = "bool"
                         value = raw_value.lower()
+                        is_reference = False
                     elif re.match(r'^-?\d+$', raw_value):
                         var_type = "int"
                         value = raw_value
+                        is_reference = False
                     elif re.match(r'^-?\d+\.\d*$', raw_value):
                         var_type = "float"
                         value = raw_value
+                        is_reference = False
+                    elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
+                        var_type = None
+                        value = raw_value
+                        is_reference = True
                     else:
                         raise SyntaxError("Invalid value in variable declaration: " + stmt)
                     
-                    statements.append(LetNode(var_name, var_type, value))
+                    statements.append(LetNode(var_name, var_type, value, is_reference))
                 elif match_const:
                     const_name = match_const.group(1)
                     raw_value = match_const.group(2).strip()
@@ -82,19 +92,27 @@ class Parser:
                        (raw_value.startswith("'") and raw_value.endswith("'")):
                             const_type = "string"
                             value = raw_value[1:-1]
+                            is_reference = False
                     elif raw_value.lower() == "true" or raw_value.lower() == "false":
                         const_type = "bool"
                         value = raw_value.lower()
+                        is_reference = False
                     elif re.match(r'^-?\d+$', raw_value):
                         const_type = "int"
                         value = raw_value
+                        is_reference = False
                     elif re.match(r'^-?\d+\.\d*$', raw_value):
                         const_type = "float"
                         value = raw_value
+                        is_reference = False
+                    elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
+                        const_type = None
+                        value = raw_value
+                        is_reference = True
                     else:
                         raise SyntaxError("Invalid value in variable declaration: " + stmt)
                     
-                    statements.append(ConstNode(const_name, const_type, value))
+                    statements.append(ConstNode(const_name, const_type, value, is_reference))
                 else:
                     raise SyntaxError("Invalid variable declaration: " + stmt)
                 
@@ -104,7 +122,7 @@ class Parser:
                     var_name = match.group(1)
                     raw_value = match.group(2).strip()
                     if(raw_value.startswith('"') and raw_value.endswith('"')) or \
-                      (raw_value.startswith('"') and raw_value.endswith('"')):
+                      (raw_value.startswith("'") and raw_value.endswith("'")):
                         var_type = "string"
                         value = raw_value[1:-1]
                     elif raw_value.lower() == 'true' or raw_value.lower() == 'false':
@@ -132,7 +150,7 @@ class CodeGenerator:
         lines = [
             '#include <iostream>',
             '#include <string>',
-            'int main() {'
+            'int main() {',
             '    std::cout << std::boolalpha;'
         ]
 
@@ -144,40 +162,67 @@ class CodeGenerator:
                 var_name = node.name
                 var_type = node.type
                 var_value = node.value
+                is_ref = getattr(node, 'is_reference', False)
 
-                if var_name in variables:
-                    raise Exception(f"Variable '{var_name}' already declared")
-                
-                variables[var_name] = var_type
-
-                if var_type == "string":
-                    lines.append(f'    std::string {var_name} = "{var_value}";')
-                elif var_type == "int":
-                    lines.append(f'    int {var_name} = {var_value};')
-                elif var_type == "float":
-                    lines.append(f'    float {var_name} = {var_value};')
-                elif var_type == "bool":
-                    bool_val = "true" if var_value == "true" else "false"
-                    lines.append(f'    bool {var_name} = {bool_val};')
+                if is_ref:
+                    if var_value in variables:
+                        ref_type = variables[var_value]
+                        variables[var_name] = ref_type
+                        if ref_type == "string":
+                            lines.append(f'    std::string {var_name} = {var_value};')
+                        elif ref_type == "int":
+                            lines.append(f'    int {var_name} = {var_value};')
+                        elif ref_type == "float":
+                            lines.append(f'    float {var_name} = {var_value};')
+                        elif ref_type == "bool":
+                            lines.append(f'    bool {var_name} = {var_value};')
+                    else:
+                        raise Exception(f"Reference variable '{var_value}' not declared")
+                else:
+                    variables[var_name] = var_type
+                    if var_type == "string":
+                        lines.append(f'    std::string {var_name} = "{var_value}";')
+                    elif var_type == "int":
+                        lines.append(f'    int {var_name} = {var_value};')
+                    elif var_type == "float":
+                        lines.append(f'    float {var_name} = {var_value};')
+                    elif var_type == "bool":
+                        bool_val = "true" if var_value == "true" else "false"
+                        lines.append(f'    bool {var_name} = {bool_val};')
             if isinstance(node, ConstNode):
                 const_name = node.name
                 const_type = node.type
                 const_value = node.value
+                is_ref = getattr(node, 'is_reference', False)
 
                 if const_name in constante:
                     raise Exception(f"Variable '{const_name}' already declared")
                 
-                constante[const_name] = const_type
-
-                if const_type == "string":
-                    lines.append(f'    const std::string {const_name} = "{const_value}";')
-                elif const_type == "int":
-                    lines.append(f'    const int {const_name} = {const_value};')
-                elif const_type == "float":
-                    lines.append(f'    const float {const_name} = {const_value};')
-                elif const_type == "bool":
-                    bool_val = "true" if const_value == "true" else "false"
-                    lines.append(f'    const bool {const_name} = {bool_val};')
+                if is_ref:
+                    if const_value in variables:
+                        ref_type = variables[const_value]
+                        constante[const_name] = ref_type
+                        if ref_type == "string":
+                            lines.append(f'    const std::string {const_name} = {const_value};')
+                        elif ref_type == "int":
+                            lines.append(f'    const int {const_name} = {const_value};')
+                        elif ref_type == "float":
+                            lines.append(f'    const float {const_name} = {const_value};')
+                        elif ref_type == "bool":
+                            lines.append(f'    const bool {const_name} = {const_value};')
+                    else:
+                        raise Exception(f"Reference variable '{const_value}' not declared")
+                else:
+                    constante[const_name] = const_type
+                    if const_type == "string":
+                        lines.append(f'    const std::string {const_name} = "{const_value}";')
+                    elif const_type == "int":
+                        lines.append(f'    const int {const_name} = {const_value};')
+                    elif const_type == "float":
+                        lines.append(f'    const float {const_name} = {const_value};')
+                    elif const_type == "bool":
+                        bool_val = "true" if const_value == "true" else "false"
+                        lines.append(f'    const bool {const_name} = {bool_val};')
             elif isinstance(node, PrintNode):
                 lines.append(f'    std::cout << u8"{node.value}" << std::endl;')
             elif isinstance(node, PrintVarNode):
