@@ -52,6 +52,7 @@ header h1 {
 .variable { color: #9bbcf7; font-weight: 600; }
 .constante { color: #7d9eea; font-weight: bold; }
 .function { color: #f38181;}
+.type { color: #96a0fc; font-weight: 500; }
 
 .controls {
     text-align: right;

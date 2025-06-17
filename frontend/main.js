@@ -22,8 +22,10 @@ function run_code() {
 const EDITOR = document.getElementById('editor');
 
 const KEYWORD = ['let', 'const', "fn"];
+const TYPE = ['int', 'float', 'bool', 'string'];
 const FUNCTION_CALL_PATTERN = /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*(\([^)]*\))/g;
 const KEYWORD_PATTERN = new RegExp(`\\b(${KEYWORD.join('|')})\\b`, 'g');
+const TYPE_PATTERN = new RegExp(`\\b(${TYPE.join('|')})\\b`, 'g');
 const STRING_PATTERN = /(["'])(?:(?=(\\?))\2.)*?\1/g;
 const NUMBER_PATTERN = /\b\d+(\.\d+)?\b/g;
 const BOOL_PATTERN = /\b(true|false)\b/g;
@@ -56,12 +58,15 @@ function highlight(text) {
     const LINES = text.split('\n');
 
     LINES.forEach(line => {
-        const LET_MATCH = line.match(/\blet\s+([a-zA-Z_]\w*)/);
-        const CONST_MATCH = line.match(/\bconst\s+([a-zA-Z_]\w*)/)
-        if (LET_MATCH) {
-            declaredVariables.add(LET_MATCH[1]);
-        } else if(CONST_MATCH) {
-            declaredConstante.add(CONST_MATCH[1]);
+        const DECLARATION_MATCH = line.match(/\b(let|const)\s+(int|float|bool|string)\s+([a-zA-Z_]\w*)\s*=/);
+
+        if (DECLARATION_MATCH) {
+            const [_, kind, type, name] = DECLARATION_MATCH;
+            if (kind === 'let') {
+                declaredVariables.add(name);
+            } else if (kind === 'const') {
+                declaredConstante.add(name);
+            }
         }
     });
 
@@ -73,6 +78,7 @@ function highlight(text) {
         let commentPart = COMMENT_INDEX >= 0 ? line.slice(COMMENT_INDEX) : '';
 
         codePart = codePart
+            .replace(TYPE_PATTERN, match => `%%TYPE%%${match}%%`)
             .replace(STRING_PATTERN, match => `%%STRING%%${match}%%`)
             .replace(KEYWORD_PATTERN, match => `%%KEYWORD%%${match}%%`)
             .replace(FUNCTION_CALL_PATTERN, (match, funcName, parens) => 
@@ -99,7 +105,7 @@ function highlight(text) {
         codePart = codePart
             .replace(/%%STRING%%(.*?)%%/g, '<span class="string">$1</span>')
             .replace(/%%KEYWORD%%(.*?)%%/g, '<span class="keyword">$1</span>')
-            .replace(/%%FUNCTION_CALL_PATTERN%%(.*?)%%/g, '<span class="function">$1</span>')
+            .replace(/%%TYPE%%(.*?)%%/g, '<span class="type">$1</span>')
             .replace(/%%NUMBER%%(.*?)%%/g, '<span class="number">$1</span>')
             .replace(/%%BOOL%%(.*?)%%/g, '<span class="bool">$1</span>')
             .replace(/%%VARIABLE%%(.*?)%%/g, '<span class="variable">$1</span>')
