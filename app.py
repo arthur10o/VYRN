@@ -39,8 +39,6 @@ class PrintVarNode:
     def __init__(self, var_name):
         self.var_name = var_name
 
-import re
-
 class Parser:
     def parse(self, source):
         self.variables = {}
