@@ -30,10 +30,9 @@ class AssignNode:
         self.value = value
         self.is_reference = is_reference
 
-class BinaryOpNode:
-    def __init__(self, left, right, operator):
-        self.left = left
-        self.right = right
+class MultiOpNode:
+    def __init__(self, operands, operator):
+        self.operands = operands
         self.operator = operator
 
 class PrintVarNode:
@@ -44,6 +43,7 @@ import re
 
 class Parser:
     def parse(self, source):
+        self.variables = {}
         code = source.strip()
         statements = []
 
@@ -88,6 +88,7 @@ class Parser:
             raise SyntaxError(f"Reserved keyword used as variable name: {name}")
 
         var_type, value, is_reference = self._parse_value(raw_value)
+        self.variables[name] = var_type
 
         if is_const:
             return ConstNode(name, var_type, value, is_reference)
@@ -100,11 +101,39 @@ class Parser:
             raise SyntaxError("Invalid assignment syntax: " + stmt)
         name, raw_value = match.groups()
         raw_value = raw_value.strip()
-        
+
         if name in {"int", "float", "string", "bool", "main", "true", "false"}:
             raise SyntaxError(f"Invalid assignment to reserved name: {name}")
 
         var_type, value, is_reference = self._parse_value(raw_value)
+
+        if var_type is None:
+            if is_reference:
+                if name in self.variables:
+                    var_type = self.variables[name]
+                else:
+                    raise Exception(f"Variable '{name}' not declared before assignment")
+            elif isinstance(value, MultiOpNode):
+                operand_types = []
+                for opnd in value.operands:
+                    t, _, ref = self._parse_value(opnd)
+                    if t is None and ref:
+                        if opnd in self.variables:
+                            t = self.variables[opnd]
+                        else:
+                            raise Exception(f"Unknown type for operand '{opnd}' in expression")
+                    operand_types.append(t)
+                if "float" in operand_types:
+                    var_type = "float"
+                elif "int" in operand_types:
+                    var_type = "int"
+                elif all(t == "string" for t in operand_types):
+                    var_type = "string"
+                else:
+                    raise Exception(f"Could not infer type for expression assigned to '{name}'")
+            else:
+                raise Exception(f"Could not infer type for assignment to '{name}'")
+
         return AssignNode(name, var_type, value, is_reference)
 
     def _parse_value(self, raw_value):
@@ -124,15 +153,11 @@ class Parser:
         if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', raw_value):
             return None, raw_value, True
 
-        binary_match = re.match(r'^(["\'].*?["\'])\s*\+\s*(["\'].*?["\'])$', raw_value)
-        if binary_match:
-            left, right = binary_match.groups()
-            return None, BinaryOpNode(left, right, '+'), False
-
-        binary_match = re.match(r'^(.+?)\s*([\+\-\*/])\s*(.+)$', raw_value)
-        if binary_match:
-            left, op, right = binary_match.groups()
-            return None, BinaryOpNode(left.strip(), right.strip(), op), False
+        multi_op = re.match(r'^(.+?)(\s*[\+\-\*/]\s*)(.+)$', raw_value)
+        if multi_op:
+            op = multi_op.group(2)
+            parts = [p.strip() for p in raw_value.split(op)]
+            return None, MultiOpNode(parts, op), False
 
         raise SyntaxError("Invalid value in expression: " + raw_value)
 
@@ -141,19 +166,20 @@ class CodeGenerator:
         lines = [
             '#include <iostream>',
             '#include <string>',
+            '#include <iomanip>',
             'using namespace std::string_literals;',
             'int main() {',
-            '    std::cout << std::boolalpha;'
+            '    std::cout << std::boolalpha;',
+            '    std::cout << std::setprecision(21);'
         ]
 
         variables = {}
         constantes = {}
 
         for node in ast:
-            if isinstance(node, (LetNode, ConstNode)) and isinstance(node.value, BinaryOpNode):
-                handle_binary_operation(node, lines, variables, constantes, is_const = isinstance(node, ConstNode))
+            if isinstance(node, (LetNode, ConstNode)) and isinstance(node.value, MultiOpNode):
+                handle_multi_operation(node, lines, variables, constantes, is_const = isinstance(node, ConstNode))
                 continue
-
             if isinstance(node, LetNode):
                 self._declare_variable(node, lines, variables, constantes, is_const=False)
 
@@ -214,10 +240,14 @@ class CodeGenerator:
                 raise Exception(f"Type mismatch in assignment: {declared_type} != {ref_type}")
             lines.append(f'    {name} = {value};')
         else:
-            if declared_type != var_type:
-                raise Exception(f"Type mismatch in assignment to '{name}': {declared_type} != {var_type}")
-            cpp_value = self._format_value(var_type, value)
-            lines.append(f'    {name} = {cpp_value};')
+            if isinstance(value, MultiOpNode):
+                expr = f" {value.operator} ".join(value.operands)
+                lines.append(f'    {name} = {expr};')
+            else:
+                if declared_type != var_type:
+                    raise Exception(f"Type mismatch in assignment to '{name}': {declared_type} != {var_type}")
+                cpp_value = self._format_value(var_type, value)
+                lines.append(f'    {name} = {cpp_value};')
 
     def _get_reference_type(self, name, variables, constantes):
         if name in variables:
@@ -230,7 +260,7 @@ class CodeGenerator:
         return {
             "string": "std::string",
             "int": "int",
-            "float": "float",
+            "float": "long double",
             "bool": "bool"
         }.get(var_type, "auto")
 
@@ -239,6 +269,8 @@ class CodeGenerator:
             return f'"{value}"'
         if var_type == "bool":
             return "true" if value == "true" else "false"
+        if var_type == "float":
+            return value + 'L'
         return value
 
 class SimpleHandler(BaseHTTPRequestHandler):
@@ -325,19 +357,10 @@ class SimpleHandler(BaseHTTPRequestHandler):
         except Exception as e:
             return f"Unexpected Error: {str(e)}"
 
-def handle_binary_operation(node, lines, variables, constantes, is_const=False):
-    left = node.value.left
-    right = node.value.right
-    op = node.value.operator
+def handle_multi_operation(node, lines, variables, constantes, is_const=False):
+    operands = node.value.operands
+    op = node.value.operator.strip()
     var_name = node.name
-
-    def is_literal(val):
-        return (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'"))
-
-    def as_cpp_string(val):
-        if is_literal(val):
-            return f'{val[:-1]}"' if val.startswith('"') else f'{val[:-1]}\''
-        return val
 
     def infer_type(val):
         if val in variables:
@@ -348,39 +371,45 @@ def handle_binary_operation(node, lines, variables, constantes, is_const=False):
             return "int"
         elif re.match(r'^-?\d+\.\d*$', val):
             return "float"
-        elif is_literal(val):
+        elif (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
             return "string"
         else:
             raise Exception(f"Unrecognized value or variable: {val}")
+    
+    operand_types = [infer_type(opnd) for opnd in operands]
 
-    left_type = infer_type(left)
-    right_type = infer_type(right)
+    if "string" in operand_types:
+        result_type = "string"
+        cpp_type = "std::string"
+    elif "float" in operand_types:
+        result_type = "float"
+        cpp_type = "long double"
+    else:
+        result_type = "int"
+        cpp_type = "int"
 
-    if left_type != right_type:
-        raise Exception(f"Type mismatch in binary operation: {left_type} {op} {right_type}")
+    expr_parts = []
 
-    if left_type not in ["int", "float", "string"]:
-        raise Exception(f"Operator '{op}' not supported for type '{left_type}'")
+    for opnd, t in zip(operands, operand_types):
+        if result_type == "string":
+            if t == "string":
+                expr_parts.append(opnd)
+            else:
+                expr_parts.append(f'std::to_string({opnd})')
+        elif op == '/':
+            result_type = 'float'
+            cpp_type = 'long double'
+            expr_parts = [f'static_cast<long double>({opnd})' for opnd in operands]
+        else:
+            expr_parts.append(opnd)
 
-    if left_type == "string" and op != "+":
-        raise Exception("Only '+' is supported for string concatenation")
 
-    cpp_type = {
-        "int": "int",
-        "float": "float",
-        "string": "std::string"
-    }[left_type]
-
+    expr = f" {op} ".join(expr_parts)
     decl = "const " if is_const else ""
-
-    left_val = as_cpp_string(left) if left_type == "string" else left
-    right_val = as_cpp_string(right) if right_type == "string" else right
-
-    lines.append(f'    {decl}{cpp_type} {var_name} = {left_val} {op} {right_val};')
+    lines.append(f'    {decl}{cpp_type} {var_name} = {expr};')
 
     target = constantes if is_const else variables
-    target[var_name] = left_type
-
+    target[var_name] = result_type
 
 if __name__ == '__main__':
     httpd = HTTPServer(('localhost', 5500), SimpleHandler)
