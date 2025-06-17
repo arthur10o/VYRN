@@ -7,6 +7,7 @@
 #include <memory>
 #include <cctype>
 #include <unordered_set>
+#include <stdexcept>
 
 enum class TokenType {
     Identifier,
@@ -33,6 +34,8 @@ static const std::unordered_set<std::string> types = {
 struct Token {
     TokenType type;
     std::string value;
+    int line;
+    int column;
 };
 
 class ASTNode {
@@ -84,43 +87,74 @@ public:
 class Lexer {
     const std::string& input;
     size_t pos = 0;
+    int line = 1;
+    int column = 1;
 
     void skip_white_space() {
         while (pos < input.size() && std::isspace(input[pos])) pos++;
     }
 
+    char peek() const {
+        return pos < input.size() ? input[pos] : '\0';
+    }
+
+    char advance() {
+        if(pos >= input.size()) return '\0';
+        char character_to_analyse = input[pos++];
+        if(character_to_analyse == '\n') {
+            line++;
+            column = 1;
+        } else {
+            column ++;
+        }
+        return character_to_analyse;
+    }
+
     bool is_identifier_character(char character_to_identified) {
         return std::isalnum(character_to_identified) || character_to_identified == '_';
     }
+
 public:
     Lexer(const std::string& _input) : input(_input) {}
 
     Token next_token() {
         skip_white_space();
-        if(pos >= input.size()) return {TokenType::EndOfFile, ""};
+        if(pos >= input.size()) return {TokenType::EndOfFile, "", line, column};
 
-        if(std::isalpha(input[pos]) || input[pos] == '_') {
+        char character_to_analyse = peek();
+        int tok_line  = line;
+        int tok_column = column;
+
+        if(std::isalpha(character_to_analyse) || character_to_analyse == '_') {
             size_t start = pos;
-            while(pos < input.size() && is_identifier_character(input[pos])) pos++;
+            while(pos < input.size() && is_identifier_character(input[pos])) advance();
             std::string word = input.substr(start, pos - start);
 
             if(keywords.find(word) != keywords.end()) {
-                return {TokenType::Keyword, word};
+                return {TokenType::Keyword, word, tok_line, tok_column};
             } else if(types.find(word) != types.end()) {
-                return {TokenType::Type, word};
+                return {TokenType::Type, word, tok_line, tok_column};
             } else {
-                return {TokenType::Identifier, word};
+                return {TokenType::Identifier, word, tok_line, tok_column};
             }
             
-        } else if(std::isdigit(input[pos])) {
+        } else if(std::isdigit(character_to_analyse)) {
             size_t start = pos;
-            while(pos < input.size() && std::isdigit(input[pos])) pos++;
-            return {TokenType::Number, input.substr(start, pos - start)};
+            while(pos < input.size() && std::isdigit(input[pos])) advance();
+            return {TokenType::Number, input.substr(start, pos - start), tok_line, tok_column};
         }
 
-        char character_to_analyse = input[pos++];
-        return {TokenType::Symbol, std::string(1, character_to_analyse)};
+        advance();
+        return {TokenType::Symbol, std::string(1, character_to_analyse), tok_line, tok_column};
     }
+};
+
+class ParseError : public  std::runtime_error {
+public:
+    int line;
+    int column;
+
+    ParseError(const std::string& _message, int _line, int _column) : std::runtime_error(_message), line(_line), column(_column) {}
 };
 
 class Parser {
@@ -133,10 +167,11 @@ class Parser {
 
     void expect(TokenType type, const std::string& value = "") {
         if(current_token.type != type || (!value.empty() && current_token.value != value)) {
-            throw std::runtime_error("Unexpected token: " + current_token.value);
+            throw ParseError("Unexpected token: '" + current_token.value + "'", current_token.line, current_token.column);
         }
         next_token();
     }
+
 public:
     Parser(const std::string& _input) : lexer(_input) {
         next_token();
@@ -145,13 +180,13 @@ public:
     std::shared_ptr<ASTNode> parse_let() {
         expect(TokenType::Keyword, "let");
         if(current_token.type != TokenType::Type) {
-            throw std::runtime_error("Expected type after let");
+            throw ParseError("Expected a type after 'let'", current_token.line, current_token.column);
         }
         std::string type = current_token.value;
         next_token();
 
         if(current_token.type != TokenType::Identifier) {
-            throw std::runtime_error("Expected identifier after type");
+            throw ParseError("Expected an identifier after type", current_token.line, current_token.column);
         }
         std::string name = current_token.value;
         next_token();
@@ -159,7 +194,7 @@ public:
         expect(TokenType::Symbol, "=");
 
         if(current_token.type != TokenType::Number) {
-            throw std::runtime_error("Expected number after '='");
+            throw ParseError("Expected a number after '='", current_token.line, current_token.column);
         }
         std::string value = current_token.value;
         next_token();
