@@ -43,14 +43,14 @@ public:
     virtual ~ASTNode() = default;
 };
 
-class LetNode : public ASTNode {
+class VarNode : public ASTNode {
 public:
     std::string type;
     std::string name;
     std::string value;
     bool is_reference;
     
-    LetNode(const std::string& _type, const std::string& _name, const std::string& _value, bool _is_reference) :
+    VarNode(const std::string& _type, const std::string& _name, const std::string& _value, bool _is_reference) :
         type(_type), name(_name), value(_value), is_reference(_is_reference) {}
 };
 
@@ -199,7 +199,32 @@ public:
         std::string value = current_token.value;
         next_token();
 
-        return std::make_shared<LetNode>(type, name, value, false);
+        return std::make_shared<VarNode>(type, name, value, false);
+    }
+
+    std::shared_ptr<ASTNode> parse_const() {
+        expect(TokenType::Keyword, "const");
+        if(current_token.type != TokenType::Type) {
+            throw ParseError("Expected a type after 'const'", current_token.line, current_token.column);
+        }
+        std::string type = current_token.value;
+        next_token();
+
+        if(current_token.type != TokenType::Identifier) {
+            throw ParseError("Expected an identifier after type", current_token.line, current_token.column);
+        }
+        std::string name = current_token.value;
+        next_token();
+
+        expect(TokenType::Symbol, "=");
+
+        if(current_token.type != TokenType::Number) {
+            throw ParseError("Expected a number after '='", current_token.line, current_token.column);
+        }
+        std::string value = current_token.value;
+        next_token();
+        
+        return std::make_shared<ConstNode>(type, name, value, false);
     }
 };
 #endif

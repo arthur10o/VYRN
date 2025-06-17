@@ -9,9 +9,16 @@ struct VariableInfo {
     bool is_reference;
 };
 
+struct ConstantInfo {
+    std::string type;
+    std::string value;
+    bool is_reference;
+};
+
 class CodeGenerator {
     std::ostringstream out;
-    std::unordered_map<std::string, VariableInfo> symbol_table;         // Table of symbols: variable name → information
+    std::unordered_map<std::string, VariableInfo> symbol_table_for_variable;         // Table of symbols for variable: variable name → information
+    std::unordered_map<std::string, ConstantInfo> symbol_table_for_constant;         // Table of symbols for constant: constant name → information
 
     void indent(int level) {
         for(int i = 0; i < level; i++) {
@@ -29,22 +36,34 @@ public:
 
 private:
     void generate_node(const std::shared_ptr<ASTNode>& _node, int _indent_level) {
-        if(auto let = std::dynamic_pointer_cast<LetNode>(_node)) {
+        if(auto let = std::dynamic_pointer_cast<VarNode>(_node)) {
             generate_let(let, _indent_level);
-        } else {
+        } else if(auto cnst = std::dynamic_pointer_cast<ConstNode>(_node)) {
+            generate_const(cnst, _indent_level);
+        }else {
             indent(_indent_level);
             out << "// Unknown node\n";
         }
     }
 
-    void generate_let(const std::shared_ptr<LetNode>& _node, int _indent_level) {
+    void generate_let(const std::shared_ptr<VarNode>& _node, int _indent_level) {
         indent(_indent_level);
-        if(symbol_table.find(_node->name) != symbol_table.end()) {
+        if(symbol_table_for_variable.find(_node->name) != symbol_table_for_variable.end()) {
             out << "// Warning: variable '" << _node->name << "' already declared\n";
         } else {
-            symbol_table[_node->name] = VariableInfo{_node->type, _node->value, _node->is_reference};
+            symbol_table_for_variable[_node->name] = VariableInfo{_node->type, _node->value, _node->is_reference};
         }
         out << _node->type << " " << _node->name << " = " << _node->value << ";\n";
+    }
+
+    void generate_const(const std::shared_ptr<ConstNode>& _node, int _indent_level) {
+        indent(_indent_level);
+        if(symbol_table_for_constant.find(_node->name) != symbol_table_for_constant.end()) {
+            out << "// Warning: constant '" << _node->name << "' already declared\n";
+        } else {
+            symbol_table_for_constant[_node->name] = ConstantInfo{_node->type, _node->value, _node->is_reference};
+        }
+        out << "const " << _node->type << " " << _node->name << " = " << _node->value << ";\n";
     }
 };
 
@@ -71,7 +90,16 @@ int main() {
 
             try {
                 Parser Parser(line);
-                auto node = Parser.parse_let();
+                std::shared_ptr<ASTNode> node;
+
+                if(line.find("let") == 0) {
+                    node = Parser.parse_let();
+                } else if(line.find("const") == 0) {
+                    node = Parser.parse_const();
+                } else {
+                    error_output << "Unknown declaration at line " + std::to_string(line_number);
+                }
+
                 all_generated_code << cg.generate(node);
             } catch (const ParseError& err) {
                 error_output << "Error at line " << line_number << ", column " << err.column << ": " << err.what() << "\n";
