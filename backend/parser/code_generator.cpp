@@ -49,7 +49,6 @@ int main() {
             if(line.empty()) continue;
             Parser Parser(line);
             auto node = Parser.parse_let();
-            node->print();
 
             std::string generated_code = cg.generate(node);
             all_generated_code << generated_code;

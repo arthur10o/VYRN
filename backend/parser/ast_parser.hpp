@@ -38,7 +38,6 @@ struct Token {
 class ASTNode {
 public:
     virtual ~ASTNode() = default;
-    virtual void print(int indent = 0) const = 0;
 };
 
 class LetNode : public ASTNode {
@@ -50,12 +49,6 @@ public:
     
     LetNode(const std::string& _type, const std::string& _name, const std::string& _value, bool _is_reference) :
         type(_type), name(_name), value(_value), is_reference(_is_reference) {}
-
-    void print(int indent = 0) const override {
-        for (int i = 0; i < indent; i++) std::cout << "  ";
-        std::cout << "LetNode: " << type << " " << name << " = " << value << " is_reference: " << is_reference 
-                  << "\n";
-    }
 };
 
 class ConstNode : public ASTNode {
@@ -67,12 +60,6 @@ public:
     
     ConstNode(const std::string& _type, const std::string& _name, const std::string& _value, bool _is_reference) :
         type(_type), name(_name), value(_value), is_reference(_is_reference) {}
-
-    void print(int indent = 0) const override {
-        for (int i = 0; i < indent; i++) std::cout << "  ";
-        std::cout << "ConstNode: " << type << " " << name << " = " << value << " is_reference: " << is_reference 
-                  << "\n";
-    }
 };
 
 class AssignNode : public ASTNode {
@@ -84,12 +71,6 @@ public:
 
     AssignNode(const std::string& _type, const std::string& _name, const std::string& _value, bool _is_reference) :
         type(_type), name(_name), value(_value), is_reference(_is_reference) {}
-
-    void print(int indent = 0) const override {
-        for (int i = 0; i < indent; i++) std::cout << "  ";
-        std::cout << "AssignNode: " << type << " " << name << " = " << value << " is_reference: " << is_reference 
-                  << "\n";
-    }
 };
 
 class MultiOpNode : public ASTNode {
@@ -98,19 +79,6 @@ public:
     std::vector<std::string> operators;
 
     MultiOpNode(const std::vector<std::shared_ptr<ASTNode>>& _operands, const std::vector<std::string>& _operators) : operands(_operands), operators(_operators) {}
-    
-    void print(int indent = 0) const override {
-        for (int i = 0; i < indent; i++) std::cout << "  ";
-        std::cout << "MultiOpNode:\n";
-
-        for (size_t i = 0; i < operands.size(); i++) {
-            operands[i]->print(indent + 1);
-            if (i < operators.size()) {
-                for (int j = 0; j < indent + 1; j++) std::cout << "  ";
-                std::cout << "Operator: '" << operators[i] << "'\n";
-            }
-        }
-    }
 };
 
 class Lexer {
@@ -199,13 +167,4 @@ public:
         return std::make_shared<LetNode>(type, name, value, false);
     }
 };
-
-/*int main() {
-    std::string code = "let int x = 42;";
-    Parser Parser(code);
-    auto node = Parser.parse_let();
-    node->print();
-    return 0;
-}*/
-
 #endif
