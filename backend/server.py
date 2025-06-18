@@ -9,7 +9,7 @@ PORT = 5500
 
 FRONTEND_DIR = 'frontend'
 CODE_FILE = 'communication/input_code.txt'
-OUTPUT_FILE = 'communication/output_result.txt'
+OUTPUT_FILE = 'communication/program_output.txt'
 CPP_EXECUTABLE = './backend/parser/parser_exec'
 
 class SimpleHandler(BaseHTTPRequestHandler):

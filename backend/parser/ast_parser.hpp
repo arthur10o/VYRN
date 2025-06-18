@@ -14,6 +14,8 @@ enum class TokenType {
     Keyword,
     Type,
     Number,
+    STRING,
+    BOOL,
     Symbol,
     EndOfFile,
     Unknown
@@ -43,29 +45,52 @@ public:
     virtual ~ASTNode() = default;
 };
 
-class VarNode : public ASTNode {
+class LiteralNode : public ASTNode {
 public:
     std::string type;
-    std::string name;
     std::string value;
-    bool is_reference;
-    
-    VarNode(const std::string& _type, const std::string& _name, const std::string& _value, bool _is_reference) :
-        type(_type), name(_name), value(_value), is_reference(_is_reference) {}
+
+    LiteralNode(const std::string& _type, const std::string& _value) 
+        : type(_type), value(_value) {}
 };
 
-class ConstNode : public ASTNode {
+class IntNode : public LiteralNode {
 public:
+    IntNode(const std::string& _value)
+        : LiteralNode("int", _value) {}
+};
+
+class FloatNode : public LiteralNode {
+public:
+    FloatNode(const std::string& _value)
+        : LiteralNode("float", _value) {}
+};
+
+class StringNode : public LiteralNode {
+public:
+    StringNode(const std::string& _value)
+        : LiteralNode("string", _value) {}
+};
+
+class BoolNode : public LiteralNode {
+public:
+    BoolNode(const std::string& _value)
+        : LiteralNode("bool", _value) {}
+};
+
+class DeclarationNode : public ASTNode {
+public:
+    bool is_const;
+    bool is_reference;
     std::string type;
     std::string name;
-    std::string value;
-    bool is_reference;
-    
-    ConstNode(const std::string& _type, const std::string& _name, const std::string& _value, bool _is_reference) :
-        type(_type), name(_name), value(_value), is_reference(_is_reference) {}
+    std::shared_ptr<LiteralNode> value;
+
+    DeclarationNode(bool _is_const, std::string _type, std::string _name, std::shared_ptr<LiteralNode> _value, bool _is_reference)
+        : is_const(_is_const), type(_type), name(_name), value(_value), is_reference(_is_reference) {}
 };
 
-class AssignNode : public ASTNode {
+/*class AssignNode : public ASTNode {
 public:
     std::string type;
     std::string name;
@@ -82,7 +107,7 @@ public:
     std::vector<std::string> operators;
 
     MultiOpNode(const std::vector<std::shared_ptr<ASTNode>>& _operands, const std::vector<std::string>& _operators) : operands(_operands), operators(_operators) {}
-};
+};*/
 
 class Lexer {
     const std::string& input;
@@ -134,15 +159,30 @@ public:
                 return {TokenType::Keyword, word, tok_line, tok_column};
             } else if(types.find(word) != types.end()) {
                 return {TokenType::Type, word, tok_line, tok_column};
-            } else {
+            } else if(word == "true" || word == "false") {
+                return {TokenType::BOOL, word, tok_line, tok_column};
+            }else {
                 return {TokenType::Identifier, word, tok_line, tok_column};
             }
-            
-        } else if(std::isdigit(character_to_analyse)) {
-            size_t start = pos;
-            while(pos < input.size() && std::isdigit(input[pos])) advance();
-            return {TokenType::Number, input.substr(start, pos - start), tok_line, tok_column};
         }
+        if(character_to_analyse == '"') {
+            advance();
+            size_t start = pos;
+            while(pos < input.size() && peek() != '"') advance();
+            std::string string = input.substr(start, pos - start);
+            advance();
+            return {TokenType::STRING, string, tok_line, tok_column};
+        }
+        if(std::isdigit(character_to_analyse)) {
+            size_t start = pos;
+            bool has_dot = false;
+            while(pos < input.size() && (std::isdigit(input[pos]) || (input[pos] == ',' || input[pos] == '.'))) {
+                if(input[pos] == ',' || input[pos] == '.') has_dot = true;
+                advance();
+            }
+            std::string number = input.substr(start, pos - start);
+            return {TokenType::Number, number, tok_line, tok_column};
+        } 
 
         advance();
         return {TokenType::Symbol, std::string(1, character_to_analyse), tok_line, tok_column};
@@ -177,54 +217,58 @@ public:
         next_token();
     }
 
-    std::shared_ptr<ASTNode> parse_let() {
-        expect(TokenType::Keyword, "let");
+    std::shared_ptr<LiteralNode> parse_value(const std::string _type) {
+        if(_type == "int") {
+            if(current_token.type != TokenType::Number) throw ParseError("Expected integer value", current_token.line, current_token.column);
+            auto value = current_token.value;
+            next_token();
+            return std::make_shared<IntNode>(value);
+        } else if(_type == "float") {
+            if(current_token.type != TokenType::Number || (current_token.value.find('.') == std::string::npos && current_token.value.find(',') == std::string::npos)) throw ParseError("Expected float value", current_token.line, current_token.column);
+            auto value = current_token.value;
+            next_token();
+            return std::make_shared<FloatNode>(value);
+        } else if (_type == "bool") {
+            if (current_token.value != "true" && current_token.value != "false")
+                throw ParseError("Expected boolean value", current_token.line, current_token.column);
+            auto value = current_token.value;
+            next_token();
+            return std::make_shared<BoolNode>(value);
+        } else if (_type == "string") {
+            if (current_token.type != TokenType::STRING)
+                throw ParseError("Expected string literal", current_token.line, current_token.column);
+            auto value = current_token.value;
+            next_token();
+            return std::make_shared<StringNode>(value);
+        }
+        throw ParseError("Unknown type", current_token.line, current_token.column);
+    }
+
+    std::shared_ptr<ASTNode> parse_declaration(bool is_const) {
+        next_token();
         if(current_token.type != TokenType::Type) {
-            throw ParseError("Expected a type after 'let'", current_token.line, current_token.column);
+            throw ParseError("Expected type", current_token.line, current_token.column);
         }
         std::string type = current_token.value;
         next_token();
 
-        if(current_token.type != TokenType::Identifier) {
-            throw ParseError("Expected an identifier after type", current_token.line, current_token.column);
-        }
+        if (current_token.type != TokenType::Identifier)
+            throw ParseError("Expected identifier", current_token.line, current_token.column);
         std::string name = current_token.value;
         next_token();
 
         expect(TokenType::Symbol, "=");
+        auto value_node = parse_value(type);
 
-        if(current_token.type != TokenType::Number) {
-            throw ParseError("Expected a number after '='", current_token.line, current_token.column);
-        }
-        std::string value = current_token.value;
-        next_token();
+        return std::make_shared<DeclarationNode>(is_const, type, name, value_node, false);
+    }
 
-        return std::make_shared<VarNode>(type, name, value, false);
+    std::shared_ptr<ASTNode> parse_let() {
+        return parse_declaration(false);
     }
 
     std::shared_ptr<ASTNode> parse_const() {
-        expect(TokenType::Keyword, "const");
-        if(current_token.type != TokenType::Type) {
-            throw ParseError("Expected a type after 'const'", current_token.line, current_token.column);
-        }
-        std::string type = current_token.value;
-        next_token();
-
-        if(current_token.type != TokenType::Identifier) {
-            throw ParseError("Expected an identifier after type", current_token.line, current_token.column);
-        }
-        std::string name = current_token.value;
-        next_token();
-
-        expect(TokenType::Symbol, "=");
-
-        if(current_token.type != TokenType::Number) {
-            throw ParseError("Expected a number after '='", current_token.line, current_token.column);
-        }
-        std::string value = current_token.value;
-        next_token();
-        
-        return std::make_shared<ConstNode>(type, name, value, false);
+        return parse_declaration(true);
     }
 };
 #endif

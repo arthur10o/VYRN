@@ -2,6 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include <unordered_map>
+#include <algorithm>
 
 struct VariableInfo {
     std::string type;
@@ -36,34 +37,58 @@ public:
 
 private:
     void generate_node(const std::shared_ptr<ASTNode>& _node, int _indent_level) {
-        if(auto let = std::dynamic_pointer_cast<VarNode>(_node)) {
-            generate_let(let, _indent_level);
-        } else if(auto cnst = std::dynamic_pointer_cast<ConstNode>(_node)) {
-            generate_const(cnst, _indent_level);
-        }else {
+        auto decl = std::dynamic_pointer_cast<DeclarationNode>(_node);
+        if(decl) {
+            if(decl->is_const) {
+                generate_const(decl, _indent_level);
+            } else {
+                generate_let(decl, _indent_level);
+            }
+        } else {
             indent(_indent_level);
             out << "// Unknown node\n";
         }
     }
 
-    void generate_let(const std::shared_ptr<VarNode>& _node, int _indent_level) {
+    void generate_let(const std::shared_ptr<DeclarationNode >& _node, int _indent_level) {
         indent(_indent_level);
         if(symbol_table_for_variable.find(_node->name) != symbol_table_for_variable.end()) {
             out << "// Warning: variable '" << _node->name << "' already declared\n";
         } else {
-            symbol_table_for_variable[_node->name] = VariableInfo{_node->type, _node->value, _node->is_reference};
+            symbol_table_for_variable[_node->name] = VariableInfo{_node->type, _node->value->value, _node->is_reference};
         }
-        out << _node->type << " " << _node->name << " = " << _node->value << ";\n";
+        out << convert_type(_node->type) << " " << _node->name << " = " << format_literal(_node->value) << ";\n";
     }
 
-    void generate_const(const std::shared_ptr<ConstNode>& _node, int _indent_level) {
+    void generate_const(const std::shared_ptr<DeclarationNode >& _node, int _indent_level) {
         indent(_indent_level);
         if(symbol_table_for_constant.find(_node->name) != symbol_table_for_constant.end()) {
             out << "// Warning: constant '" << _node->name << "' already declared\n";
         } else {
-            symbol_table_for_constant[_node->name] = ConstantInfo{_node->type, _node->value, _node->is_reference};
+            symbol_table_for_constant[_node->name] = ConstantInfo{_node->type, _node->value->value, _node->is_reference};
         }
-        out << "const " << _node->type << " " << _node->name << " = " << _node->value << ";\n";
+        out << "const " << convert_type(_node->type) << " " << _node->name << " = " << format_literal(_node->value) << ";\n";
+    }
+
+    std::string format_literal(const std::shared_ptr<LiteralNode>& node) {
+        if(node->type == "string") {
+            return "\"" + node->value + "\"";
+        } else if(node->type == "bool") {
+            return (node->value == "true") ? "true" : "false";
+        } else  if(node->type == "float") {
+            std::string val = node->value;
+            std::replace(val.begin(), val.end(), ',', '.');
+            return val;
+        } else {
+            return node->value;
+        }
+    }
+
+    std::string convert_type(const std::string& original_type) {
+        if(original_type == "string") {
+            return "std::string";
+        }
+        return original_type;
     }
 };
 
@@ -81,6 +106,12 @@ int main() {
         int line_number = 1;
         CodeGenerator cg;
         std::ostringstream all_generated_code;
+        all_generated_code << "#include <iostream>\n";
+        all_generated_code << "#include <string>\n";
+        all_generated_code << "#include <iomanip>\n";
+        all_generated_code << "int main() {\n";
+        all_generated_code << "    std::cout << std::boolalpha;\n";
+        all_generated_code << "    std::cout << std::setprecision(21);\n";
 
         while(std::getline(file, line)) {
             if(line.empty()) {
@@ -98,6 +129,8 @@ int main() {
                     node = Parser.parse_const();
                 } else {
                     error_output << "Unknown declaration at line " + std::to_string(line_number);
+                    line_number++;
+                    continue;
                 }
 
                 all_generated_code << cg.generate(node);
@@ -109,18 +142,62 @@ int main() {
             line_number++;
         }
 
-        std::cout << all_generated_code.str();
-
-        std::cout << error_output.str();
-
-        std::ofstream output("communication/output_result.txt");
-        if(output) {
-            output << error_output.str();
-        } else {
-            std::cerr << "Error: unable to write to output_result.txt.\n";
-        }
+        all_generated_code << "    std::cout << \"\\n✔ Le code a été exécuté avec succès.\\n\";\n";
+        all_generated_code << "    return 0;";
+        all_generated_code << "}";
 
         file.close();
+
+        const std::string generated_filename = "communication/generated_code.cpp";
+        std::ofstream output(generated_filename);
+        if(!output) {
+            std::cerr << "Error: unable to write to " << generated_filename << "\n";
+            return 1;
+        }
+
+        output << all_generated_code.str();
+        output.close();
+
+        const std::string executable_name = "communication\\generated_program.exe";
+        std::string compile_command = "g++ -std=c++17 " + generated_filename + " -o " + executable_name + " 2> communication/compile_errors.txt";
+        int compile_result = system(compile_command.c_str());
+
+        if(compile_result != 0) {
+            std::ifstream compile_errors("communication/compile_errors.txt");
+            if(compile_errors) {
+                std::cerr << "Compilation errors:\n";
+                std::cerr << compile_errors.rdbuf();
+                compile_errors.close();
+            } else {
+                std::cerr << "Unknown compilation error.\n";
+            }
+            return 1;
+        }
+
+        const std::string output_capture_file = "communication/program_output.txt";
+        std::string run_command = ".\\" + executable_name + " > " + output_capture_file + " 2>&1";
+        int run_result = system(run_command.c_str());
+        std::cerr << "Run command: " << run_command << "\n";
+        std::cerr << "Return code: " << run_result << "\n";
+        if(run_result != 0) {
+            std::cerr << "Error: execution of generated program failed.\n";
+            return 1;
+        }
+
+        std::ifstream program_output(output_capture_file);
+        if(program_output) {
+            std::cout << "===== Output of generated program =====\n";
+            std::cout << program_output.rdbuf();
+            std::cout << "======================================\n";
+            program_output.close();
+        } else {
+            std::cerr << "Error: unable to read program output.\n";
+            return 1;
+        }
+
+        if(!error_output.str().empty()) {
+            std::cerr << "Parsing errors:\n" << error_output.str();
+        }
     } catch (const std::exception& e) {
         std::cerr << "Fatal error: " << e.what() << "\n";
         return 1;
