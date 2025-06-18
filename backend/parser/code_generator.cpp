@@ -98,7 +98,7 @@ int main() {
     try {
         std::ifstream file("communication/input_code.txt");
         if(!file) {
-            error_output << "Error: unable to open input_code.txt.\n";
+            std::cerr  << "Error: unable to open input_code.txt.\n";
             return 1;
         }
 
@@ -142,7 +142,7 @@ int main() {
             line_number++;
         }
 
-        all_generated_code << "    std::cout << \"\\n✔ Le code a été exécuté avec succès.\\n\";\n";
+        //all_generated_code << "    std::cout << \"\\n✔ Le code a été exécuté avec succès.\\n\";\n";
         all_generated_code << "    return 0;";
         all_generated_code << "}";
 
@@ -195,8 +195,16 @@ int main() {
             return 1;
         }
 
-        if(!error_output.str().empty()) {
-            std::cerr << "Parsing errors:\n" << error_output.str();
+        if (!error_output.str().empty()) {
+            std::ofstream parsing_error("communication/parsing_errors.txt");
+            if (parsing_error) {
+                parsing_error << error_output.str();
+                parsing_error.close();
+            }
+        } else {
+            std::ofstream parsing_error("communication/parsing_errors.txt", std::ios::trunc);
+            parsing_error << "✔ Le code a été exécuté avec succès.\n";
+            parsing_error.close();
         }
     } catch (const std::exception& e) {
         std::cerr << "Fatal error: " << e.what() << "\n";

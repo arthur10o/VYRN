@@ -44,12 +44,15 @@ class SimpleHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_length)
 
+        print("Reçu POST /run avec body:", body.decode('utf-8'))
+
         try:
             data = json.loads(body)
-            code = data.get('code')
+            code = data.get('CODE')
             if code is None:
                 raise ValueError("Missing 'code' field")
         except Exception as e:
+            print("Erreur de parsing JSON:", e)
             self._set_headers(400, 'application/json')
             self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
             return
@@ -61,11 +64,29 @@ class SimpleHandler(BaseHTTPRequestHandler):
         try:
             completed = subprocess.run([CPP_EXECUTABLE], check=True, capture_output=True, text=True)
 
+            parsing_errors_path = 'communication/parsing_errors.txt'
+            compile_errors_path = 'communication/compile_errors.txt'
+
+            if os.path.exists(parsing_errors_path) and os.path.getsize(parsing_errors_path) > 0:
+                with open(parsing_errors_path, 'r', encoding='utf-8') as f:
+                    error_content = f.read()
+                print("Parsing errors détectés :", error_content)
+                self._set_headers(400, 'text/plain')
+                self.wfile.write(error_content.encode('utf-8'))
+                return
+            
+            if os.path.exists(compile_errors_path) and os.path.getsize(compile_errors_path) > 0:
+                with open(compile_errors_path, 'r', encoding='utf-8') as f:
+                    compile_errors = f.read()
+                print("Compile errors détectés :", compile_errors)
+                self._set_headers(400, 'text/plain')
+                self.wfile.write(b"Compilation errors:\n" + compile_errors.encode('utf-8'))
+                return
             if os.path.exists(OUTPUT_FILE):
                 with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
                     result = f.read()
             else:
-                result = 'Erreur: le fichier de sortie est manquant.'
+                result = 'No output generated.'
 
             self._set_headers(200, 'text/plain')
             self.wfile.write(result.encode('utf-8'))

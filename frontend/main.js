@@ -1,22 +1,39 @@
-function run_code() {
+async function run_code() {
     const CODE = cleanText(document.getElementById('editor').innerText);
 
-    fetch('/run', {
+    try {
+        const response = await fetch('/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: CODE })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
-        return response.text();
-    })
-    .then(result => {
-        document.getElementById('output').textContent = result;
-    })
-    .catch(err => {
-        console.error(err);
-        document.getElementById('output').textContent = "Erreur : " + err;
-    });
+        body: JSON.stringify({ CODE })
+        });
+
+        const text = await response.text();
+
+        if (!response.ok) {
+        displayError(text);
+        } else {
+        displayOutput(text);
+        }
+    } catch (err) {
+        displayError("Erreur serveur: " + err.message);
+    }
+}
+
+function displayError(message) {
+    const outputDiv = document.getElementById('output');
+    if(message == "✔ Le code a été exécuté avec succès.\n") {
+        outputDiv.style.color = '#a6e22e';
+        outputDiv.textContent = message;
+    } else {
+        outputDiv.textContent = "Erreur :\n" + message;
+        outputDiv.style.color = 'red';
+    }
+}
+
+function displayOutput(output) {
+  const outputDiv = document.getElementById('output');
+  outputDiv.textContent = output;
 }
 
 const EDITOR = document.getElementById('editor');
