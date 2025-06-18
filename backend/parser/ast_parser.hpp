@@ -90,6 +90,17 @@ public:
         : is_const(_is_const), type(_type), name(_name), value(_value), is_reference(_is_reference) {}
 };
 
+class PrintNode : public ASTNode {
+public:
+    std::shared_ptr<LiteralNode> value;
+    std::string variable_name;
+    bool is_variable;
+
+    PrintNode(const std::string& _var_name) : value(nullptr), variable_name(_var_name), is_variable(true) {}
+
+    PrintNode(std::shared_ptr<LiteralNode> _value) : value(_value), is_variable(false) {}
+};
+
 /*class AssignNode : public ASTNode {
 public:
     std::string type;
@@ -269,6 +280,36 @@ public:
 
     std::shared_ptr<ASTNode> parse_const() {
         return parse_declaration(true);
+    }
+
+    std::shared_ptr<ASTNode> parse_print() {
+        next_token();
+
+        if(current_token.type == TokenType::Identifier) {
+            std::string var_name = current_token.value;
+            next_token();
+            return std::make_shared<PrintNode>(var_name);
+        } else {
+            if(current_token.type == TokenType::Number) {
+                std::string value = current_token.value;
+                next_token();
+                if(value.find('.') != std::string::npos || value.find(',') != std::string::npos) {
+                    return std::make_shared<PrintNode>(std::make_shared<FloatNode>(value));
+                } else {
+                    return std::make_shared<PrintNode>(std::make_shared<IntNode>(value));
+                }
+            } else if(current_token.type == TokenType::STRING) {
+                std::string value = current_token.value;
+                next_token();
+                return std::make_shared<PrintNode>(std::make_shared<StringNode>(value));
+            } else if(current_token.type == TokenType::BOOL) {
+                std::string value = current_token.value;
+                next_token();
+                return std::make_shared<PrintNode>(std::make_shared<BoolNode>(value));
+            } else {
+                throw ParseError("Invalid value for print", current_token.line, current_token.column);
+            }
+        }
     }
 };
 #endif

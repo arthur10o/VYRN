@@ -38,12 +38,16 @@ public:
 private:
     void generate_node(const std::shared_ptr<ASTNode>& _node, int _indent_level) {
         auto decl = std::dynamic_pointer_cast<DeclarationNode>(_node);
+        auto print_node = std::dynamic_pointer_cast<PrintNode>(_node);
         if(decl) {
             if(decl->is_const) {
                 generate_const(decl, _indent_level);
             } else {
                 generate_let(decl, _indent_level);
             }
+        } else if(print_node) {
+            generate_print(print_node, _indent_level);
+            return;
         } else {
             indent(_indent_level);
             out << "// Unknown node\n";
@@ -68,6 +72,23 @@ private:
             symbol_table_for_constant[_node->name] = ConstantInfo{_node->type, _node->value->value, _node->is_reference};
         }
         out << "const " << convert_type(_node->type) << " " << _node->name << " = " << format_literal(_node->value) << ";\n";
+    }
+
+    void generate_print(const std::shared_ptr<PrintNode>& _node, int _indent_level) {
+        indent(_indent_level);
+        out << "std::cout << ";
+        if(_node->is_variable) {
+            if(symbol_table_for_variable.count(_node->variable_name)) {
+                out << _node->variable_name;
+            } else if(symbol_table_for_constant.count(_node->variable_name)) {
+                out << _node->variable_name;
+            } else {
+                out << "\"[Undefined variable: " << _node->variable_name << "]\"";
+            }
+        } else {
+            out << format_literal(_node->value);
+        }
+        out << " << std::endl;\n";
     }
 
     std::string format_literal(const std::shared_ptr<LiteralNode>& node) {
@@ -127,6 +148,8 @@ int main() {
                     node = Parser.parse_let();
                 } else if(line.find("const") == 0) {
                     node = Parser.parse_const();
+                } else if(line.find("print") == 0) {
+                    node = Parser.parse_print();
                 } else {
                     error_output << "Unknown declaration at line " + std::to_string(line_number);
                     line_number++;
@@ -189,6 +212,11 @@ int main() {
             std::cout << program_output.rdbuf();
             std::cout << "======================================\n";
             program_output.close();
+            std::ofstream output_bis ("communication/program_output.txt", std::ios::app);
+        if(output_bis) {
+            output_bis << "✔ Le code a été exécuté avec succès.\n";
+            output_bis.close();
+        }
         } else {
             std::cerr << "Error: unable to read program output.\n";
             return 1;
@@ -202,7 +230,6 @@ int main() {
             }
         } else {
             std::ofstream parsing_error("communication/parsing_errors.txt", std::ios::trunc);
-            parsing_error << "✔ Le code a été exécuté avec succès.\n";
             parsing_error.close();
         }
     } catch (const std::exception& e) {

@@ -10,10 +10,10 @@ async function run_code() {
 
         const text = await response.text();
 
-        if (!response.ok) {
-        displayError(text);
+        if (text.includes("Le code a été exécuté avec succès.")) {
+            displayOutput(text);
         } else {
-        displayOutput(text);
+            displayError(text);
         }
     } catch (err) {
         displayError("Erreur serveur: " + err.message);
@@ -22,7 +22,7 @@ async function run_code() {
 
 function displayError(message) {
     const outputDiv = document.getElementById('output');
-    if(message == "✔ Le code a été exécuté avec succès.\n") {
+    if(message.includes("Le code a été exécuté avec succès.")) {
         outputDiv.style.color = '#a6e22e';
         outputDiv.textContent = message;
     } else {
@@ -32,8 +32,9 @@ function displayError(message) {
 }
 
 function displayOutput(output) {
-  const outputDiv = document.getElementById('output');
-  outputDiv.textContent = output;
+    const outputDiv = document.getElementById('output');
+    outputDiv.textContent = output;
+    outputDiv.style.color = '#a6e22e';
 }
 
 const EDITOR = document.getElementById('editor');

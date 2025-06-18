@@ -85,6 +85,9 @@ class SimpleHandler(BaseHTTPRequestHandler):
             if os.path.exists(OUTPUT_FILE):
                 with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
                     result = f.read()
+                    self._set_headers(400, 'text/plain')
+                    self.wfile.write(b"Output :\n" + result.encode('utf-8'))
+                    return
             else:
                 result = 'No output generated.'
 
