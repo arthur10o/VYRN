@@ -142,7 +142,6 @@ int main() {
             line_number++;
         }
 
-        //all_generated_code << "    std::cout << \"\\n✔ Le code a été exécuté avec succès.\\n\";\n";
         all_generated_code << "    return 0;";
         all_generated_code << "}";
 
