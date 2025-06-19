@@ -38,15 +38,15 @@ public:
 private:
     void generate_node(const std::shared_ptr<ASTNode>& _node, int _indent_level) {
         auto decl = std::dynamic_pointer_cast<DeclarationNode>(_node);
-        auto print_node = std::dynamic_pointer_cast<PrintNode>(_node);
+        auto log_node = std::dynamic_pointer_cast<LogNode>(_node);
         if(decl) {
             if(decl->is_const) {
                 generate_const(decl, _indent_level);
             } else {
                 generate_let(decl, _indent_level);
             }
-        } else if(print_node) {
-            generate_print(print_node, _indent_level);
+        } else if(log_node) {
+            generate_log(log_node, _indent_level);
             return;
         } else {
             indent(_indent_level);
@@ -74,7 +74,7 @@ private:
         out << "const " << convert_type(_node->type) << " " << _node->name << " = " << format_literal(_node->value) << ";\n";
     }
 
-    void generate_print(const std::shared_ptr<PrintNode>& _node, int _indent_level) {
+    void generate_log(const std::shared_ptr<LogNode>& _node, int _indent_level) {
         indent(_indent_level);
         out << "std::cout << ";
         if(_node->is_variable) {
@@ -100,6 +100,8 @@ private:
             std::string val = node->value;
             std::replace(val.begin(), val.end(), ',', '.');
             return val;
+        } else if(node->type == "int") {
+            return node->value;
         } else {
             return node->value;
         }
@@ -113,6 +115,21 @@ private:
     }
 };
 
+std::vector<std::string> split_instructions(const std::string& code) {
+    std::vector<std::string> instructions;
+    std::stringstream instr_stream(code);
+    std::string instruction;
+
+    while (std::getline(instr_stream, instruction, ';')) {
+        instruction.erase(0, instruction.find_first_not_of(" \t\r\n"));
+        instruction.erase(instruction.find_last_not_of(" \t\r\n") + 1);
+        if (!instruction.empty())
+            instructions.push_back(instruction);
+    }
+
+    return instructions;
+}
+
 int main() {
     std::ostringstream error_output;
 
@@ -122,9 +139,13 @@ int main() {
             std::cerr  << "Error: unable to open input_code.txt.\n";
             return 1;
         }
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        std::string code = buffer.str();
 
-        std::string line;
+        std::string instructions = code;
         int line_number = 1;
+
         CodeGenerator cg;
         std::ostringstream all_generated_code;
         all_generated_code << "#include <iostream>\n";
@@ -134,22 +155,19 @@ int main() {
         all_generated_code << "    std::cout << std::boolalpha;\n";
         all_generated_code << "    std::cout << std::setprecision(21);\n";
 
-        while(std::getline(file, line)) {
-            if(line.empty()) {
-                line_number++;
-                continue;
-            }
+        std::vector<std::string> parts = split_instructions(instructions);
 
+        for(const auto& instruction : parts) {
             try {
-                Parser Parser(line);
+                Parser parser(instruction);
                 std::shared_ptr<ASTNode> node;
 
-                if(line.find("let") == 0) {
-                    node = Parser.parse_let();
-                } else if(line.find("const") == 0) {
-                    node = Parser.parse_const();
-                } else if(line.find("print") == 0) {
-                    node = Parser.parse_print();
+                if (instruction.find("let") == 0) {
+                    node = parser.parse_let();
+                } else if (instruction.find("const") == 0) {
+                    node = parser.parse_const();
+                } else if (instruction.find("log(") == 0 || instruction.find("log") == 0) {
+                    node = parser.parse_log();
                 } else {
                     error_output << "Unknown declaration at line " + std::to_string(line_number);
                     line_number++;
@@ -159,11 +177,12 @@ int main() {
                 all_generated_code << cg.generate(node);
             } catch (const ParseError& err) {
                 error_output << "Error at line " << line_number << ", column " << err.column << ": " << err.what() << "\n";
-                error_output << "  " << line << "\n";
+                error_output << "  " << instructions << "\n";
                 error_output << "  " << std::string(err.column - 1, ' ') << "^\n";
             }
-            line_number++;
         }
+        all_generated_code << "\n";
+        line_number++;
 
         all_generated_code << "    return 0;";
         all_generated_code << "}";
@@ -214,7 +233,7 @@ int main() {
             program_output.close();
             std::ofstream output_bis ("communication/program_output.txt", std::ios::app);
         if(output_bis) {
-            output_bis << "✔ Le code a été exécuté avec succès.\n";
+            output_bis << "\n✔ Le code a été exécuté avec succès.\n";
             output_bis.close();
         }
         } else {
