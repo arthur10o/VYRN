@@ -4,22 +4,21 @@
 #include <unordered_map>
 #include <algorithm>
 
-struct VariableInfo {
-    std::string type;
-    std::string value;
-    bool is_reference;
+enum class SymbolKind {
+    VARIABLE,
+    CONSTANT
 };
 
-struct ConstantInfo {
-    std::string type;
+struct SymbolInfo {
+    std::string types;
     std::string value;
     bool is_reference;
+    SymbolKind kind;
 };
 
 class CodeGenerator {
     std::ostringstream out;
-    std::unordered_map<std::string, VariableInfo> symbol_table_for_variable;         // Table of symbols for variable: variable name → information
-    std::unordered_map<std::string, ConstantInfo> symbol_table_for_constant;         // Table of symbols for constant: constant name → information
+    std::unordered_map<std::string, SymbolInfo> symbol_table;
 
     void indent(int level) {
         for(int i = 0; i < level; i++) {
@@ -41,11 +40,7 @@ private:
         auto log_node = std::dynamic_pointer_cast<LogNode>(_node);
         auto assign_node = std::dynamic_pointer_cast<AssignNode>(_node);
         if(decl) {
-            if(decl->is_const) {
-                generate_const(decl, _indent_level);
-            } else {
-                generate_let(decl, _indent_level);
-            }
+            generate_declaration(decl, _indent_level, decl->is_const ? SymbolKind::CONSTANT : SymbolKind::VARIABLE);
         } else if(log_node) {
             generate_log(log_node, _indent_level);
             return;
@@ -57,9 +52,18 @@ private:
         }
     }
 
+    bool is_declared(const std::string& _name, bool _is_const = false) {
+        auto it = symbol_table.find(_name);
+        if (it != symbol_table.end()) {
+            return (_is_const && it->second.kind == SymbolKind::CONSTANT) || (!_is_const && it->second.kind == SymbolKind::VARIABLE);
+        }
+        return false;
+    }
+
     void generate_assign(const std::shared_ptr<AssignNode>& _node, int _indent_level) {
         indent(_indent_level);
-        if(symbol_table_for_variable.find(_node->target_variable) == symbol_table_for_variable.end()) {
+        bool declared = is_declared(_node->target_variable);
+        if(declared) {
             out << "// Error: variable '" << _node->target_variable << "' is not declared\n";
         } else {
             out << _node->target_variable << " = " << _node->source_variable << ";\n";
@@ -71,43 +75,23 @@ private:
         }
     }
 
-    void generate_let(const std::shared_ptr<DeclarationNode >& _node, int _indent_level) {
+    void generate_declaration(const std::shared_ptr<DeclarationNode>& _node, int _indent_level, SymbolKind _kind) {
         indent(_indent_level);
-        if(symbol_table_for_variable.find(_node->name) != symbol_table_for_variable.end()) {
-            out << "// Warning: variable '" << _node->name << "' already declared\n";
+        bool declared = is_declared(_node->name, _node->is_const);
+        if(declared) {
+            out << "// Warning: " << (_kind == SymbolKind::CONSTANT ? "constant" : "variable") << " '" << _node->name << "' already declared\n";
         } else {
-            symbol_table_for_variable[_node->name] = VariableInfo{_node->type, _node->value->value, _node->is_reference};
+            symbol_table[_node->name] = SymbolInfo {_node->type, _node->value->value, _node->is_reference, _kind};
         }
-        out << convert_type(_node->type) << " " << _node->name << " = ";
-        if(_node->is_reference) {
-            out << _node->value->value;
-        } else {
-            out << format_literal(_node->value) << ";\n";
-        }
-    }
-
-    void generate_const(const std::shared_ptr<DeclarationNode >& _node, int _indent_level) {
-        indent(_indent_level);
-        if(symbol_table_for_constant.find(_node->name) != symbol_table_for_constant.end()) {
-            out << "// Warning: constant '" << _node->name << "' already declared\n";
-        } else {
-            symbol_table_for_constant[_node->name] = ConstantInfo{_node->type, _node->value->value, _node->is_reference};
-        }
-        out << "const " << convert_type(_node->type) << " " << _node->name << " = ";
-        if(_node->is_reference) {
-            out << _node->value->value;
-        } else {
-            out << format_literal(_node->value) << ";\n";
-        }
+        out << (_kind == SymbolKind::CONSTANT ? "const " : "") << convert_type(_node->type) << " " << _node->name << " = ";
+        out << (_node->is_reference ? _node->value->value : format_literal(_node->value)) << ";\n";
     }
 
     void generate_log(const std::shared_ptr<LogNode>& _node, int _indent_level) {
         indent(_indent_level);
         out << "std::cout << ";
         if(_node->is_variable) {
-            if(symbol_table_for_variable.count(_node->variable_name)) {
-                out << _node->variable_name;
-            } else if(symbol_table_for_constant.count(_node->variable_name)) {
+            if(symbol_table.count(_node->variable_name)) {
                 out << _node->variable_name;
             } else {
                 out << "\"[Undefined variable: " << _node->variable_name << "]\"";
@@ -118,19 +102,19 @@ private:
         out << " << std::endl;\n";
     }
 
-    std::string format_literal(const std::shared_ptr<LiteralNode>& node) {
-        if(node->type == "string" && !node->is_reference) {
-            return "\"" + node->value + "\"";
-        } else if(node->type == "bool") {
-            return (node->value == "true") ? "true" : "false";
-        } else  if(node->type == "float") {
-            std::string val = node->value;
+    std::string format_literal(const std::shared_ptr<LiteralNode>& _node) {
+        if(_node->type == "string" && !_node->is_reference) {
+            return "\"" + _node->value + "\"";
+        } else if(_node->type == "bool") {
+            return (_node->value == "true") ? "true" : "false";
+        } else  if(_node->type == "float") {
+            std::string val = _node->value;
             std::replace(val.begin(), val.end(), ',', '.');
             return val;
-        } else if(node->type == "int") {
-            return node->value;
+        } else if(_node->type == "int") {
+            return _node->value;
         } else {
-            return node->value;
+            return _node->value;
         }
     }
 
@@ -148,14 +132,19 @@ private:
     }
 };
 
+std::string trim(const std::string& s) {
+    auto start = s.find_first_not_of(" \t\r\n");
+    auto end = s.find_last_not_of(" \t\r\n");
+    return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
+}
+
 std::vector<std::string> split_instructions(const std::string& code) {
     std::vector<std::string> instructions;
     std::stringstream instr_stream(code);
     std::string instruction;
 
     while (std::getline(instr_stream, instruction, ';')) {
-        instruction.erase(0, instruction.find_first_not_of(" \t\r\n"));
-        instruction.erase(instruction.find_last_not_of(" \t\r\n") + 1);
+        instruction = trim(instruction);
         if (!instruction.empty())
             instructions.push_back(instruction);
     }
@@ -176,9 +165,6 @@ int main() {
         buffer << file.rdbuf();
         std::string code = buffer.str();
 
-        std::string instructions = code;
-        int line_number = 1;
-
         CodeGenerator cg;
         std::ostringstream all_generated_code;
         all_generated_code << "#include <iostream>\n";
@@ -188,7 +174,7 @@ int main() {
         all_generated_code << "    std::cout << std::boolalpha;\n";
         all_generated_code << "    std::cout << std::setprecision(21);\n";
 
-        std::vector<std::string> parts = split_instructions(instructions);
+        std::vector<std::string> parts = split_instructions(code);
 
         for(const auto& instruction : parts) {
             try {
@@ -202,21 +188,16 @@ int main() {
                 } else if (instruction.find("log(") == 0 || instruction.find("log") == 0) {
                     node = parser.parse_log();
                 } else {
-                    error_output << "Unknown declaration at line " + std::to_string(line_number);
-                    line_number++;
+                    error_output << "Unknown declaration";
                     continue;
                 }
 
                 all_generated_code << cg.generate(node);
             } catch (const ParseError& err) {
-                error_output << "Error at line " << line_number << ", column " << err.column << ": " << err.what() << "\n";
-                error_output << "  " << instructions << "\n";
-                error_output << "  " << std::string(err.column - 1, ' ') << "^\n";
+                error_output << "Error: " << err.what() << "\n";
             }
         }
         all_generated_code << "\n";
-        line_number++;
-
         all_generated_code << "    return 0;";
         all_generated_code << "}";
 
@@ -234,9 +215,9 @@ int main() {
 
         const std::string executable_name = "communication\\generated_program.exe";
         std::string compile_command = "g++ -std=c++17 " + generated_filename + " -o " + executable_name + " 2> communication/compile_errors.txt";
-        int compile_result = system(compile_command.c_str());
+        int compile_result = std::system(compile_command.c_str());
 
-        if(compile_result != 0) {
+        if (compile_result != 0) {
             std::ifstream compile_errors("communication/compile_errors.txt");
             if(compile_errors) {
                 std::cerr << "Compilation errors:\n";
@@ -250,9 +231,7 @@ int main() {
 
         const std::string output_capture_file = "communication/program_output.txt";
         std::string run_command = ".\\" + executable_name + " > " + output_capture_file + " 2>&1";
-        int run_result = system(run_command.c_str());
-        std::cerr << "Run command: " << run_command << "\n";
-        std::cerr << "Return code: " << run_result << "\n";
+        int run_result = std::system(run_command.c_str());
         if(run_result != 0) {
             std::cerr << "Error: execution of generated program failed.\n";
             return 1;
