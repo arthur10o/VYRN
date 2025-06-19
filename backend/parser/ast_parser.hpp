@@ -135,16 +135,43 @@ class Lexer {
     int column = 1;
 
     void skip_white_space() {
-        while(pos < input.size() && std::isspace(input[pos])) {
-            if(input[pos] == '\n') {
-                line++;
-                column = 1;
+        while (pos < input.size()) {
+            if (std::isspace(input[pos])) {
+                if (input[pos] == '\n') {
+                    line++;
+                    column = 1;
+                } else {
+                    column++;
+                }
+                pos++;
+            } else if (input[pos] == '/' && pos + 1 < input.size()) {
+                if (input[pos + 1] == '/') {
+                    while (pos < input.size() && input[pos] != '\n') {
+                        pos++;
+                    }
+                } else if (input[pos + 1] == '*') {
+                    pos += 2;
+                    while (pos < input.size() && !(input[pos] == '*' && pos + 1 < input.size() && input[pos + 1] == '/')) {
+                        if (input[pos] == '\n') {
+                            line++;
+                            column = 1;
+                        } else {
+                            column++;
+                        }
+                        pos++;
+                    }
+                    if (pos < input.size()) {
+                        pos += 2;
+                    }
+                } else {
+                    break;
+                }
             } else {
-                column++;
+                break;
             }
-            pos++;
         }
     }
+
 
     char peek() const {
         return pos < input.size() ? input[pos] : '\0';

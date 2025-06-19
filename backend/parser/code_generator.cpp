@@ -140,17 +140,46 @@ std::string trim(const std::string& s) {
 
 std::vector<std::string> split_instructions(const std::string& code) {
     std::vector<std::string> instructions;
-    std::stringstream instr_stream(code);
     std::string instruction;
+    bool in_multi_line_comment = false;
 
-    while (std::getline(instr_stream, instruction, ';')) {
+    for (size_t i = 0; i < code.size(); ) {
+        if (!in_multi_line_comment && i + 1 < code.size() && code[i] == '/' && code[i + 1] == '*') {
+            in_multi_line_comment = true;
+            i += 2;
+        } else if (in_multi_line_comment && i + 1 < code.size() && code[i] == '*' && code[i + 1] == '/') {
+            in_multi_line_comment = false;
+            i += 2;
+        } else if (!in_multi_line_comment && i + 1 < code.size() && code[i] == '/' && code[i + 1] == '/') {
+            while (i < code.size() && code[i] != '\n') {
+                i++;
+            }
+        } else if (!in_multi_line_comment) {
+            if (code[i] == ';') {
+                instruction = trim(instruction);
+                if (!instruction.empty()) {
+                    instructions.push_back(instruction);
+                }
+                instruction.clear();
+            } else {
+                instruction += code[i];
+            }
+            i++;
+        } else {
+            i++;
+        }
+    }
+
+    if (!instruction.empty()) {
         instruction = trim(instruction);
-        if (!instruction.empty())
+        if (!instruction.empty()) {
             instructions.push_back(instruction);
+        }
     }
 
     return instructions;
 }
+
 
 int main() {
     std::ostringstream error_output;
