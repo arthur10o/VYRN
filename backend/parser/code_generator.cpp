@@ -39,6 +39,7 @@ private:
     void generate_node(const std::shared_ptr<ASTNode>& _node, int _indent_level) {
         auto decl = std::dynamic_pointer_cast<DeclarationNode>(_node);
         auto log_node = std::dynamic_pointer_cast<LogNode>(_node);
+        auto assign_node = std::dynamic_pointer_cast<AssignNode>(_node);
         if(decl) {
             if(decl->is_const) {
                 generate_const(decl, _indent_level);
@@ -48,9 +49,25 @@ private:
         } else if(log_node) {
             generate_log(log_node, _indent_level);
             return;
+        } else if(assign_node) {
+            generate_assign(assign_node, _indent_level);
         } else {
             indent(_indent_level);
             out << "// Unknown node\n";
+        }
+    }
+
+    void generate_assign(const std::shared_ptr<AssignNode>& _node, int _indent_level) {
+        indent(_indent_level);
+        if(symbol_table_for_variable.find(_node->target_variable) == symbol_table_for_variable.end()) {
+            out << "// Error: variable '" << _node->target_variable << "' is not declared\n";
+        } else {
+            out << _node->target_variable << " = " << _node->source_variable << ";\n";
+            if (_node->is_reference) {
+                out << _node->source_variable;
+            } else {
+                out << _node->source_variable;
+            }
         }
     }
 
@@ -61,7 +78,12 @@ private:
         } else {
             symbol_table_for_variable[_node->name] = VariableInfo{_node->type, _node->value->value, _node->is_reference};
         }
-        out << convert_type(_node->type) << " " << _node->name << " = " << format_literal(_node->value) << ";\n";
+        out << convert_type(_node->type) << " " << _node->name << " = ";
+        if(_node->is_reference) {
+            out << _node->value->value;
+        } else {
+            out << format_literal(_node->value) << ";\n";
+        }
     }
 
     void generate_const(const std::shared_ptr<DeclarationNode >& _node, int _indent_level) {
@@ -71,7 +93,12 @@ private:
         } else {
             symbol_table_for_constant[_node->name] = ConstantInfo{_node->type, _node->value->value, _node->is_reference};
         }
-        out << "const " << convert_type(_node->type) << " " << _node->name << " = " << format_literal(_node->value) << ";\n";
+        out << "const " << convert_type(_node->type) << " " << _node->name << " = ";
+        if(_node->is_reference) {
+            out << _node->value->value;
+        } else {
+            out << format_literal(_node->value) << ";\n";
+        }
     }
 
     void generate_log(const std::shared_ptr<LogNode>& _node, int _indent_level) {
@@ -92,7 +119,7 @@ private:
     }
 
     std::string format_literal(const std::shared_ptr<LiteralNode>& node) {
-        if(node->type == "string") {
+        if(node->type == "string" && !node->is_reference) {
             return "\"" + node->value + "\"";
         } else if(node->type == "bool") {
             return (node->value == "true") ? "true" : "false";
@@ -110,6 +137,12 @@ private:
     std::string convert_type(const std::string& original_type) {
         if(original_type == "string") {
             return "std::string";
+        } else if(original_type == "int") {
+            return "int";
+        } else if(original_type == "float") {
+            return "float";
+        } else if(original_type == "bool") {
+            return "bool";
         }
         return original_type;
     }

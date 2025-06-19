@@ -49,9 +49,10 @@ class LiteralNode : public ASTNode {
 public:
     std::string type;
     std::string value;
+    bool is_reference = false;
 
-    LiteralNode(const std::string& _type, const std::string& _value) 
-        : type(_type), value(_value) {}
+    LiteralNode(const std::string& _type, const std::string& _value, bool _is_reference = false) 
+        : type(_type), value(_value), is_reference(_is_reference) {}
 };
 
 class IntNode : public LiteralNode {
@@ -88,6 +89,16 @@ public:
 
     DeclarationNode(bool _is_const, std::string _type, std::string _name, std::shared_ptr<LiteralNode> _value, bool _is_reference)
         : is_const(_is_const), type(_type), name(_name), value(_value), is_reference(_is_reference) {}
+};
+
+class AssignNode : public ASTNode {
+public:
+    std::string target_variable;
+    std::string source_variable;
+    bool is_reference;
+
+    AssignNode(const std::string& _target, const std::string& _source, bool _is_reference)
+        : target_variable(_target), source_variable(_source), is_reference(_is_reference) {}
 };
 
 class LogNode : public ASTNode {
@@ -230,27 +241,45 @@ public:
 
     std::shared_ptr<LiteralNode> parse_value(const std::string _type) {
         if(_type == "int") {
-            if(current_token.type != TokenType::Number) throw ParseError("Expected integer value", current_token.line, current_token.column);
-            auto value = current_token.value;
-            next_token();
-            return std::make_shared<IntNode>(value);
+            if(current_token.type == TokenType::Number) {
+                auto value = current_token.value;
+                next_token();
+                return std::make_shared<IntNode>(value);
+            } else if(current_token.type == TokenType::Identifier) {
+                std::string var_name = current_token.value;
+                next_token();
+                return std::make_shared<LiteralNode>(_type, var_name, true);
+            }
         } else if(_type == "float") {
-            if(current_token.type != TokenType::Number || (current_token.value.find('.') == std::string::npos && current_token.value.find(',') == std::string::npos)) throw ParseError("Expected float value", current_token.line, current_token.column);
-            auto value = current_token.value;
-            next_token();
-            return std::make_shared<FloatNode>(value);
+            if(current_token.type == TokenType::Number || (current_token.value.find('.') == std::string::npos && current_token.value.find(',') == std::string::npos)) {
+                auto value = current_token.value;
+                next_token();
+                return std::make_shared<FloatNode>(value);
+            } else if(current_token.type == TokenType::Identifier) {
+                std::string var_name = current_token.value;
+                next_token();
+                return std::make_shared<LiteralNode>(_type, var_name, true);
+            }
         } else if (_type == "bool") {
-            if (current_token.value != "true" && current_token.value != "false")
-                throw ParseError("Expected boolean value", current_token.line, current_token.column);
-            auto value = current_token.value;
-            next_token();
-            return std::make_shared<BoolNode>(value);
+            if (current_token.value == "true" || current_token.value == "false") {
+                auto value = current_token.value;
+                next_token();
+                return std::make_shared<BoolNode>(value);
+            } else if (current_token.type == TokenType::Identifier) {
+                std::string var_name = current_token.value;
+                next_token();
+                return std::make_shared<LiteralNode>(_type, var_name, true);
+            }
         } else if (_type == "string") {
-            if (current_token.type != TokenType::STRING)
-                throw ParseError("Expected string literal", current_token.line, current_token.column);
-            auto value = current_token.value;
-            next_token();
-            return std::make_shared<StringNode>(value);
+            if (current_token.type == TokenType::STRING) {
+                auto value = current_token.value;
+                next_token();
+                return std::make_shared<StringNode>(value);
+            } else if (current_token.type == TokenType::Identifier) {
+                std::string var_name = current_token.value;
+                next_token();
+                return std::make_shared<LiteralNode>(_type, var_name, true);
+            }
         }
         throw ParseError("Unknown type", current_token.line, current_token.column);
     }
@@ -272,6 +301,23 @@ public:
         auto value_node = parse_value(type);
 
         return std::make_shared<DeclarationNode>(is_const, type, name, value_node, false);
+    }
+
+    std::shared_ptr<ASTNode> parse_assign() {
+        next_token();
+        if(current_token.type != TokenType::Identifier) throw ParseError("Expected identifier for target variable", current_token.line, current_token.column);
+
+        std::string target = current_token.value;
+        next_token();
+
+        expect(TokenType::Symbol, "=");
+
+        next_token();
+        if(current_token.type != TokenType::Identifier) throw ParseError("Expected identifier for source variable", current_token.line, current_token.column);
+
+        std::string source = current_token.value;
+
+        return std::make_shared<AssignNode>(target, source, false);
     }
 
     std::shared_ptr<ASTNode> parse_let() {
