@@ -112,24 +112,21 @@ public:
     LogNode(std::shared_ptr<LiteralNode> _value) : value(_value), is_variable(false) {}
 };
 
-/*class AssignNode : public ASTNode {
-public:
-    std::string type;
-    std::string name;
-    std::string value;
-    bool is_reference;
-
-    AssignNode(const std::string& _type, const std::string& _name, const std::string& _value, bool _is_reference) :
-        type(_type), name(_name), value(_value), is_reference(_is_reference) {}
-};
-
-class MultiOpNode : public ASTNode {
+/*class MultiOpNode : public ASTNode {
 public:
     std::vector<std::shared_ptr<ASTNode>> operands;
     std::vector<std::string> operators;
 
     MultiOpNode(const std::vector<std::shared_ptr<ASTNode>>& _operands, const std::vector<std::string>& _operators) : operands(_operands), operators(_operators) {}
 };*/
+
+class ParseError : public  std::runtime_error {
+public:
+    int line;
+    int column;
+
+    ParseError(const std::string& _message, int _line, int _column) : std::runtime_error(_message), line(_line), column(_column) {}
+};
 
 class Lexer {
     const std::string& input;
@@ -138,7 +135,15 @@ class Lexer {
     int column = 1;
 
     void skip_white_space() {
-        while (pos < input.size() && std::isspace(input[pos])) pos++;
+        while(pos < input.size() && std::isspace(input[pos])) {
+            if(input[pos] == '\n') {
+                line++;
+                column = 1;
+            } else {
+                column++;
+            }
+            pos++;
+        }
     }
 
     char peek() const {
@@ -209,14 +214,6 @@ public:
         advance();
         return {TokenType::Symbol, std::string(1, character_to_analyse), tok_line, tok_column};
     }
-};
-
-class ParseError : public  std::runtime_error {
-public:
-    int line;
-    int column;
-
-    ParseError(const std::string& _message, int _line, int _column) : std::runtime_error(_message), line(_line), column(_column) {}
 };
 
 class Parser {
