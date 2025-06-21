@@ -145,14 +145,11 @@ graph LR
 │   │   ├── ast_parser.cpp        # Parseur AST en C++
 │   │   ├── code_generator.cpp    # Génération/interprétation du code
 │   │   ├── parser_exec.exe       # Le fichier exécutable généré par le c++
-│   │   ├── CMakeLists.txt        # Pour compiler les fichiers C++
 │
 ├── communication/
-│   ├── protocol.md               # Documentation JSON envoyé du frontend vers serveur (format, clés)
 │
 ├── README.md
 ├── LICENSE
-└── Makefile / build scripts # Pour builder le backend C++
 ```
 
 ## Contribuer
