@@ -4,37 +4,38 @@
 
 ## Table des matières
 
-- [Présentation](#présentation)  
+- [Présentation](#présentation)
 - [Fonctionnalités](#fonctionnalités-principales)
-- [Installation](#installation)  
-- [Utilisation](#utilisation)  
-- [Langage VYRN — Documentation](#langage-vyrn--documentation)  
-- [Architecture technique](#architecture-technique)  
-- [Contribuer](#contribuer)  
-- [Roadmap](#roadmap)  
-- [Licence](#licence)  
+- [Installation](#installation)
+- [Utilisation](#utilisation)
+- [Langage VYRN — Documentation](#langage-vyrn--documentation)
+- [Architecture technique](#architecture-technique)
+- [Contribuer](#contribuer)
+- [Roadmap](#roadmap)
+- [Licence](#licence)
 
 ---
 
 ## Présentation
 
-**VYRN** est un langage de programmation expérimental, accompagné d’un environnement web léger permettant d’écrire et d’exécuter du code en temps réel.  
-Le projet combine un IDE web (HTML/CSS/JS), un serveur Python pour interpréter les requêtes, et un exécutable C++ pour traiter les instructions du langage.
+**VYRN** est un langage de programmation expérimental, minimaliste et typé, exécuté via un serveur Python et compilé en C++.
+Il inclut une interface web interactive, un parseur personnalisé, et un moteur de génération de code C++ sans bibliothèques externes.
 
-Le but est d’explorer la création d’un langage et de son environnement complet, avec un contrôle total et sans bibliothèques externes complexes.
+Le but est de créer un environnement de développement et un langage de **zéro**, pour l’apprentissage et l’exploration.
 
 ---
 
 ## Fonctionnalités principales
 
-- **Éditeur Web Intégré** :  Interface web simple pour écrire, envoyer et afficher les résultats du code.
-- **Langage VYRN** : Syntaxe minimaliste avec support des types bool, string, float et int, variables (`let`), constantes (`const`) et affichage (`print`).
-- **Support des références** : possibilité de déclarer une variable ou constante par référence à une autre variable existante.
-- **Coloration syntaxique** : L’éditeur web colore dynamiquement les types, fonctions, variables, constantes, chaînes, booléens et commentaires.
-- **Backend Python** : Serveur HTTP basé sur ```http.server``` qui parse le code, génère du C++ puis compile et exécute ce dernier.
-- **Interpréteur C++** : Le serveur écrit un fichier ```.cpp``` temporaire, compile avec ```g++``` et exécute le binaire pour récupérer la sortie.
-- **Communication via requêtes HTTP** (GET pour l’interface, POST pour exécuter le code).
-- **Pas d’arrêt automatique du serveur**, pour un usage continu.
+- **Éditeur Web** intégré avec coloration syntaxique
+- **Types supportés** : int, float, string, bool
+- **Déclarations via** ```let``` (variables) et ```const``` (constantes)
+- **Références** : possibilité de déclarer une variable/constante par référence à une autre
+- **Affectation** avec vérification stricte du type
+- **Fonction** ```log()``` avec chaîne ou variable
+- **Inférence de type** dans les expressions
+- **Compilation C++** transparente via ```g++```
+- **Sortie affichée dynamiquement dans l'IDE**
 
 ---
 
@@ -42,10 +43,9 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 
 ### Prérequis
 
-- Python 3.x  
-- Navigateur web moderne (Chrome, Firefox, Edge)  
-- (Optionnel) Compilateur C++ (`g++`) pour développer l'interpréteur  
-- Assurez-vous que `g++` est dans votre PATH (MinGW pour Windows ou GCC sous Linux/macOS).
+- Python 3.x
+- Navigateur web moderne (Chrome, Firefox, Edge)
+- **Compilateur C++** (```g++```) dans le PATH
 
 ### Étapes
 
@@ -65,110 +65,95 @@ Le but est d’explorer la création d’un langage et de son environnement comp
 
 ## Utilisation
 1. Ecrire du code VYRN dans l'éditeur
-2. Cliquer sur **Exécuter** pour envoyer le code au serveur.
-3. Visualiser la sortie ou les erreurs dans la console de résultats intégrée.
-4. Le serveur **reste actif** après exécution.
+2. Cliquer sur **Exécuter**
+3. Le code est parsé, transformé en C++, compilé puis exécuté
+4. La sortie ou les erreurs s’affichent en bas
 
 ---
 
 ## Langage VYRN — Documentation
-### Syntaxe de base
-| Commande             | Description                               | Exemple                   | Sortie           |
-| -------------------- | ----------------------------------------- | ------------------------- | ---------------- |
-| `print("texte");`    | Affiche une chaîne de caractères          | `print("Hello, World!");` | `Hello, World!`  |
-| `print(variable);`   | Affiche la valeur d’une variable          | `print(age);`             | `30`             |
-| `let nom = valeur;`  | Déclare une variable typée                | `let age = 30;`           | Variable stockée |
-| `nom = valeur_deux;` | Affecte une nouvelle valeur (même type)   | `age = 32;`               | Variable stockée |
-| `const nom = valeur;`| Déclare une constante typée               | `const pi = 3.14;`        | Constante stockée|
+### Commandes disponibles
+| Syntaxe | Description | Exemple |
+| - | - | - |
+| `log("texte");` | Affiche du texte | `log("Hello");` |
+| `let int x = 42;` | Variable typée | `let string nom = "Bob";` |
+| `const float PI = 3.14;` | Constante non modifiable | `const int ANSWER = 42;` |
+| `let type a = b;` | Déclaration par référence | `let type copie = age;` |
+| `x = 12;` | Réaffectation (même type obligatoire) | `nom = "Alice";` |
 
-- Types supportés : ```string``` (texte entre guillemets doubles ou simples), ```bool``` (```true```/```false```), ```int``` (entiers), ```float``` (nombres à virgule).
-- Variables et constantes doivent être typées implicitement selon la valeur assignée à la déclaration.
-- Lors d’une réaffectation (```x = 12.5;```), le type doit correspondre exactement au type d'origine.
-- Les constantes ne peuvent pas être réassignées.
-- Les commentaires ```//``` sont supportés en début et en fin de ligne.
-- Toute commande inconnue ou mal formée retourne une erreur.
-- Les erreurs de type à l’assignation provoquent une erreur d’exécution.
+### Types supportés
+- ```int``` : entiers
+- ```float``` : nombres à virgule(64bits)
+- ```string``` : texte entre ```"..."``` ou ```'...'```
+- ```bool``` : ```true``` ou ```false```
 
 ### Exemples
-```js
-// Déclaration de variables
-let a = 10;
-const b = 20;
-let c = a;
-const d = b;
+```vyrn
+let int a = 10;
+let int b = 20;
 
-// Déclaration de variables de types différents
-let pi = 3.1415;
-const isActive = true;
-let message = "Hello, World!";
-const greeting = message;
+const float pi = 3.1415;
 
-// Affichage des valeurs initiales
-print("Valeurs initiales:");
-print(a);
-print(b);
-print(c);
-print(d);
-print(pi);
-print(isActive);
-print(message);
-print(greeting);
+let string txt = "Résultat: ";
+let bool declare = true;
 
-// Assignation
-a = 15;
-c = a;
-message = "Nouvelle valeur";
-
-// Affichage après assignation
-print("Valeurs après assignation:");
-print(a);
-print(c);
-print(message);
-
-// Affichage finale
-print("Fin du programme");
+log(b);
+log(declare);
+log(pi);
 ```
-
 ### Limitations actuelles
-- Commandes supportées : `print`, déclaration et assignation de variables via `let` et `=`, déclaration de constantes avec `const`.
-- Types supportés : `bool`, `string`, `int`, `float`.
-- Pas encore de structures de contrôle (conditions, boucles, fonctions).
-- Variables et constantes typées implicitement selon la valeur assignée à la déclaration.
-- Les constantes ne peuvent pas être réassignées.
-- Lors d’une réaffectation (```x = 12.5;```), le type doit correspondre exactement au type d'origine.
-- Pas de gestion d’erreurs avancée autre que syntaxique et de type (erreurs runtime non gérées).
-- Pas encore de support pour les commentaires multi-lignes.
-- Pas de support pour les expressions complexes ou opérations arithmétiques/logiques.
-
-
----
-
+- Aucune structure de contrôle (if, while, etc.)
+- Les fonctions ne sont pas encore disponibles
+- Une seule expression par ligne (pas d’imbrication complexe)
+- Gestion basique des erreurs (message d'erreur retourné tel quel)
+- Les opérateurs logiques (&&, ||, !) ne sont pas encore pris en charge
 
 ## Architecture technique
 ```mermaid
-graph LR 
-    A[Frontend HTML/CSS/JS] -->|POST JSON code| B[Serveur Python HTTP]
-    B -->|Parse et génère C++| C[Code C++ temporaire]
-    C -->|Compilation g++| D[Exécutable natif]
-    D -->|Sortie texte| B
-    B -->|Réponse texte| A
+graph LR
+    A[(HTML/JS)] -->|POST / code JSON| B[Serveur Python]
+    B -->|Parse VYRN| C[AST VYRN]
+    C -->|Codegen| D[Code C++]
+    D -->|g++| E[Exécutable temporaire]
+    E -->|stdout| B -->|Réponse| A
 ```
-
 ### Description des composants
-- Frontend (HTML/CSS/JS):
-   + Éditeur web en HTML/CSS/JS :
-   +   - Envoie le code via requêtes POST JSON au serveur.
-   +   - Gère la coloration syntaxique dynamique en temps réel (highlighting personnalisé sans bibliothèque externe).
+- Frontend (HTML/CSS/JS) :
+  - Éditeur web en HTML/CSS/JS :
+     - Envoie le code via requêtes POST JSON au serveur.
+     - Gère la coloration syntaxique dynamique en temps réel (highlighting personnalisé sans bibliothèque externe).
 - Serveur Python :
-    - Service HTTP simple (```http.server```)
-    - Parse le code VYRN, génère du code C++ correspondant.
-    - Compile le C++ avec ```g++``` en exécutable temporaire.
-    - Exécute le binaire et récupère la sortie pour la renvoyer.
+  - Service HTTP simple (http.server)
+  - Parse le code VYRN, génère du code C++ correspondant.
+  - Compile le C++ avec g++ en exécutable temporaire.
+  - Exécute le binaire et récupère la sortie pour la renvoyer.
 - Compilation & Exécution :
-    - Création de fichiers temporaires ```temp.cpp``` et ```temp_exec.exe``` (Windows).
-    - Nettoyage automatique des fichiers temporaires après exécution.
+  - Création de fichiers temporaires temp.cpp et temp_exec.exe (Windows).
 
----
+### Structure des fichiers
+```bash
+/project-root
+│
+├── frontend/
+│   ├── index.html                # Page principale de l'IDE
+│   ├── styles.css                # Styles CSS de l'éditeur
+│   ├── main.js                   # Gestion de l'éditeur : récupération du code, coloration syntaxique
+│
+├── backend/
+│   ├── server.py                 # Mini serveur HTTP Python (reçoit JSON, transmet au C++)
+│   ├── parser/                   # Parser et génération code C++
+│   │   ├── ast_parser.cpp        # Parseur AST en C++
+│   │   ├── code_generator.cpp    # Génération/interprétation du code
+│   │   ├── parser_exec.exe       # Le fichier exécutable généré par le c++
+│   │   ├── CMakeLists.txt        # Pour compiler les fichiers C++
+│
+├── communication/
+│   ├── protocol.md               # Documentation JSON envoyé du frontend vers serveur (format, clés)
+│
+├── README.md
+├── LICENSE
+└── Makefile / build scripts # Pour builder le backend C++
+```
 
 ## Contribuer
 Contributions bienvenues !
@@ -178,27 +163,19 @@ Merci de :
 - Respecter la structure et la syntaxe existantes
 - Ajouter des fonctionnalités progressivement
 
----
-
 ## Roadmap
-- [x] IDE web simple (HTML/CSS/JS)
-- [x] Serveur Python minimal
-- [x] Parsing basique du langage VYRN
-- [x] Génération et compilation dynamique du C++
-- [x] Gestion des variables typées et ```print```
-- [x] Ajout du support des constantes (`const`)
-- [x] Coloration syntaxique côté client
-- [x] Ajouter le support des références dans les déclarations  
-- [x] Vérifier strictement le type lors des affectations  
-- [x] Gérer les erreurs de référence et de typage  
-- [ ] Ajout de structures de contrôle (conditions, boucles)
-- [ ] Amélioration de la gestion des erreurs
-- [ ] Support des fonctions et modules
-- [ ] Tests automatisés et documentation utilisateur complète
+- ✅ Gestion des types (int, float, string, bool)
+- ✅ Références entre variables / constantes
+- ✅ Coloration syntaxique personnalisée
+- ☐ Expressions arithmétiques simples et concaténation
+- ☐ Opérateurs logiques (&&, ||, !)
+- ☐ Structures de contrôle (if, while, for)
+- ☐ Fonctions (déclaration + appel)
+- ☐ Système de modules / fichiers externes
+- ☐ Refactoring du parser (arbre plus robuste)
+- ☐ Interface web améliorée (erreurs ligne par ligne)
 
----
-
-## Licence
+  ## Licence
 
 Ce projet est distribué sous les termes de la **GNU General Public License v3.0 (GPL-3.0)**.  
 Cela signifie que vous êtes libre de :
