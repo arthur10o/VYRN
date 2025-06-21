@@ -60,18 +60,33 @@ private:
         return false;
     }
 
+    bool is_const(const std::string& _name) {
+        auto it = symbol_table.find(_name);
+        if(it != symbol_table.end()) {
+            return it->second.kind == SymbolKind::CONSTANT;
+        }
+        return false;
+    }
+
     void generate_assign(const std::shared_ptr<AssignNode>& _node, int _indent_level) {
         indent(_indent_level);
         bool declared = is_declared(_node->target_variable);
-        if(declared) {
+        if(!declared) {
             out << "// Error: variable '" << _node->target_variable << "' is not declared\n";
-        } else {
-            out << _node->target_variable << " = " << _node->source_variable << ";\n";
+        } else if(is_const(_node->target_variable)) {
+            out << "// Error: cannot assign to constant '" << _node->target_variable << "'\n";
+        }else {
+            out << _node->target_variable << " = ";
             if (_node->is_reference) {
                 out << _node->source_variable;
             } else {
-                out << _node->source_variable;
+                if(symbol_table[_node->target_variable].types == "string" && _node->source_variable.find('"') == std::string::npos) {
+                    out << "\"" << _node->source_variable << "\"";
+                } else {
+                    out << format_literal(std::make_shared<LiteralNode>("", _node->source_variable));
+                }
             }
+            out << ";\n";
         }
     }
 
@@ -84,7 +99,12 @@ private:
             symbol_table[_node->name] = SymbolInfo {_node->type, _node->value->value, _node->is_reference, _kind};
         }
         out << (_kind == SymbolKind::CONSTANT ? "const " : "") << convert_type(_node->type) << " " << _node->name << " = ";
-        out << (_node->is_reference ? _node->value->value : format_literal(_node->value)) << ";\n";
+        if (_node->type == "string" && !_node->is_reference) {
+            out << "\"" << _node->value->value << "\"";
+        } else {
+            out << (_node->is_reference ? _node->value->value : format_literal(_node->value));
+        }
+        out << ";\n";
     }
 
     void generate_log(const std::shared_ptr<LogNode>& _node, int _indent_level) {
@@ -216,6 +236,8 @@ int main() {
                     node = parser.parse_const();
                 } else if (instruction.find("log(") == 0 || instruction.find("log") == 0) {
                     node = parser.parse_log();
+                } else if (instruction.find("=") != std::string::npos) {
+                    node = parser.parse_assign();
                 } else {
                     error_output << "Unknown declaration";
                     continue;

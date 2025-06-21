@@ -327,21 +327,28 @@ public:
         return std::make_shared<DeclarationNode>(is_const, type, name, value_node, false);
     }
 
-    std::shared_ptr<ASTNode> parse_assign() {
-        next_token();
-        if(current_token.type != TokenType::Identifier) throw ParseError("Expected identifier for target variable", current_token.line, current_token.column);
+    std::shared_ptr<ASTNode> parse_assign() {        
+        if (current_token.type != TokenType::Identifier) {
+            throw ParseError("Expected target variable", current_token.line, current_token.column);
+        }
 
         std::string target = current_token.value;
+
         next_token();
 
         expect(TokenType::Symbol, "=");
 
-        next_token();
-        if(current_token.type != TokenType::Identifier) throw ParseError("Expected identifier for source variable", current_token.line, current_token.column);
-
-        std::string source = current_token.value;
-
-        return std::make_shared<AssignNode>(target, source, false);
+        if(current_token.type == TokenType::Identifier) {
+            std::string source = current_token.value;
+            next_token();
+            return std::make_shared<AssignNode>(target, source, true);
+        } else if(current_token.type == TokenType::Number || current_token.type == TokenType::STRING || current_token.type == TokenType::BOOL) {
+            std::string source = current_token.value;
+            next_token();
+            return std::make_shared<AssignNode>(target, source, false);
+        } else {
+            throw ParseError("Expected a value or variable after '='", current_token.line, current_token.column);
+        }
     }
 
     std::shared_ptr<ASTNode> parse_let() {
