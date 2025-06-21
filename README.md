@@ -148,8 +148,7 @@ graph LR
 │
 ├── communication/
 │
-├── README.md
-├── LICENSE
+└── README.md
 ```
 
 ## Contribuer
