@@ -15,5 +15,4 @@
 ├── communication/
 │   ├── protocol.md          # Documentation JSON envoyé du frontend vers serveur (format, clés)
 │
-├── README.md
-└── Makefile / build scripts # Pour builder le backend C++
+└── README.md
