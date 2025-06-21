@@ -47,7 +47,7 @@ const TYPE_PATTERN = new RegExp(`\\b(${TYPE.join('|')})\\b`, 'g');
 const STRING_PATTERN = /(["'])(?:(?=(\\?))\2.)*?\1/g;
 const NUMBER_PATTERN = /\b\d+(\.\d+)?\b/g;
 const BOOL_PATTERN = /\b(true|false)\b/g;
-const COMMENT_PATTERN = /\/\/.*/g;
+const COMMENT_PATTERN = /\/\*[\s\S]*?\*\//g;
 
 let declaredVariables = new Set();
 let declaredConstante = new Set();
@@ -66,10 +66,17 @@ function highlight(text) {
     declaredConstante.clear();
 
     const STRINGS = [];
+    const COMMENTS = [];
 
     text = text.replace(STRING_PATTERN, match => {
         const PLACEHOLDER = `__STRING${STRINGS.length}__`;
         STRINGS.push(match);
+        return PLACEHOLDER;
+    });
+
+    text = text.replace(COMMENT_PATTERN, match => {
+        const PLACEHOLDER = `__COMMENT${COMMENTS.length}__`;
+        COMMENTS.push(match);
         return PLACEHOLDER;
     });
 
@@ -118,6 +125,11 @@ function highlight(text) {
          STRINGS.forEach((str, i) => {
             const PLACEHOLDER_REGEX = new RegExp(`__STRING${i}__`, 'g');
             codePart = codePart.replace(PLACEHOLDER_REGEX, `<span class="string">${str}</span>`);
+        });
+
+        COMMENTS.forEach((comment, i) => {
+            const PLACEHOLDER_REGEX = new RegExp(`__COMMENT${i}__`, 'g');
+            codePart = codePart.replace(PLACEHOLDER_REGEX, `<span class="comment">${escapeHtml(comment)}</span>`);
         });
 
         codePart = codePart
