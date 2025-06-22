@@ -93,13 +93,22 @@ Le but est de créer un environnement de développement et un langage de **zéro
 ```vyrn
 let int a = 10;
 let int b = 20;
+let int somme = a + b;
+let int produit = a * b;
+let float division = b / 3.0;
+let int modulo = b % 7;
+let float racine = sqrt(49);
 
 const float pi = 3.1415;
 
 let string txt = "Résultat: ";
 let bool declare = true;
 
-log(b);
+log(somme);
+log(produit);
+log(division);
+log(modulo);
+log(racine);
 log(declare);
 log(pi);
 ```

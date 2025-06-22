@@ -262,62 +262,57 @@ class Parser {
     }
 
     std::shared_ptr<LiteralNode> eval_expression(const std::string& expected_type) {
-        std::function<double()> parse_expression;
-        std::function<double()> parse_factor;
-        std::function<double()> parse_primary;
+        std::function<std::string()> parse_expression;
+        std::function<std::string()> parse_factor;
+        std::function<std::string()> parse_primary;
 
         parse_primary = [&]() {
             if (current_token.type == TokenType::Number) {
-                double val = std::stod(current_token.value);
+                std::string val = current_token.value;
                 next_token();
                 return val;
             } else if (current_token.type == TokenType::Identifier && current_token.value == "sqrt") {
                 next_token();
                 expect(TokenType::Symbol, "(");
-                double val = parse_expression();
+                std::string val = parse_expression();
                 expect(TokenType::Symbol, ")");
-                return std::sqrt(val);
+                return "sqrt(" + val + ")";
+            } else if (current_token.type == TokenType::Identifier) {
+                std::string var_name = current_token.value;
+                next_token();
+                return var_name;
+            } else if (current_token.type == TokenType::Symbol && current_token.value == "-") {
+                next_token();
+                return "-" + parse_primary();
             } else {
-                throw ParseError("Expected number or sqrt", current_token.line, current_token.column);
+                throw ParseError("Expected number, variable or sqrt", current_token.line, current_token.column);
             }
         };
         parse_factor = [&]() {
-            double left = parse_primary();
+            std::string left = parse_primary();
             while (current_token.type == TokenType::Symbol && (current_token.value == "*" || current_token.value == "/" || current_token.value == "%")) {
                 std::string op = current_token.value;
                 next_token();
-                double right = parse_primary();
-                if (op == "*") left *= right;
-                else if (op == "/") left /= right;
-                else if (op == "%") {
-                    if (expected_type == "int") {
-                        left = static_cast<int>(left) % static_cast<int>(right);
-                    } else {
-                        throw ParseError("Modulo only supported for int", current_token.line, current_token.column);
-                    }
-                }
+                std::string right = parse_primary();
+                left = "(" + left + " " + op + " " + right + ")";
             }
             return left;
         };
         parse_expression = [&]() {
-            double left = parse_factor();
+            std::string left = parse_factor();
             while (current_token.type == TokenType::Symbol && (current_token.value == "+" || current_token.value == "-")) {
                 std::string op = current_token.value;
                 next_token();
-                double right = parse_factor();
-                if (op == "+") left += right;
-                else if (op == "-") left -= right;
+                std::string right = parse_factor();
+                left = "(" + left + " " + op + " " + right + ")";
             }
             return left;
         };
-        double result = parse_expression();
+        std::string expr = parse_expression();
         if (expected_type == "int") {
-            return std::make_shared<IntNode>(std::to_string(static_cast<int>(result)));
+            return std::make_shared<IntNode>(expr);
         } else {
-            std::ostringstream oss;
-            oss.precision(20);
-            oss << std::fixed << result;
-            return std::make_shared<FloatNode>(oss.str());
+            return std::make_shared<FloatNode>(expr);
         }
     }
 

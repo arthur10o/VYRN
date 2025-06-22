@@ -223,6 +223,7 @@ int main() {
         all_generated_code << "#include <iostream>\n";
         all_generated_code << "#include <string>\n";
         all_generated_code << "#include <iomanip>\n";
+        all_generated_code << "#include <cmath>\n";
         all_generated_code << "int main() {\n";
         all_generated_code << "    std::cout << std::boolalpha;\n";
         all_generated_code << "    std::cout << std::setprecision(21);\n";
