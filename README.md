@@ -29,12 +29,13 @@ Le but est de créer un environnement de développement et un langage de **zéro
 
 - **Éditeur Web** intégré avec coloration syntaxique
 - **Types supportés** : int, float, string, bool
-- **Déclarations via** ```let``` (variables) et ```const``` (constantes)
+- **Déclarations via** `let` (variables) et `const` (constantes)
 - **Références** : possibilité de déclarer une variable/constante par référence à une autre
 - **Affectation** avec vérification stricte du type
-- **Fonction** ```log()``` avec chaîne ou variable
+- **Fonction** `log()` avec chaîne ou variable
+- **Opérations arithmétiques** : addition, soustraction, multiplication, division, modulo, racine carrée (`+`, `-`, `*`, `/`, `%`, `sqrt()`)
 - **Inférence de type** dans les expressions
-- **Compilation C++** transparente via ```g++```
+- **Compilation C++** transparente via `g++`
 - **Sortie affichée dynamiquement dans l'IDE**
 
 ---
@@ -45,7 +46,7 @@ Le but est de créer un environnement de développement et un langage de **zéro
 
 - Python 3.x
 - Navigateur web moderne (Chrome, Firefox, Edge)
-- **Compilateur C++** (```g++```) dans le PATH
+- **Compilateur C++** (`g++`) dans le PATH
 
 ### Étapes
 
@@ -64,7 +65,7 @@ Le but est de créer un environnement de développement et un langage de **zéro
 ---
 
 ## Utilisation
-1. Ecrire du code VYRN dans l'éditeur
+1. Écrire du code VYRN dans l'éditeur
 2. Cliquer sur **Exécuter**
 3. Le code est parsé, transformé en C++, compilé puis exécuté
 4. La sortie ou les erreurs s’affichent en bas
@@ -80,12 +81,13 @@ Le but est de créer un environnement de développement et un langage de **zéro
 | `const float PI = 3.14;` | Constante non modifiable | `const int ANSWER = 42;` |
 | `let type a = b;` | Déclaration par référence | `let type copie = age;` |
 | `x = 12;` | Réaffectation (même type obligatoire) | `nom = "Alice";` |
+| `let int y = 2 + 3 * 4;` | Opérations mathématiques | `let float r = sqrt(16) + 1.5;` |
 
 ### Types supportés
-- ```int``` : entiers
-- ```float``` : nombres à virgule(64bits)
-- ```string``` : texte entre ```"..."``` ou ```'...'```
-- ```bool``` : ```true``` ou ```false```
+- `int` : entiers (opérations arithmétiques supportées)
+- `float` : nombres à virgule (64bits, opérations arithmétiques supportées)
+- `string` : texte entre `"..."` ou `'...'`
+- `bool` : `true` ou `false`
 
 ### Exemples
 ```vyrn
@@ -118,17 +120,20 @@ graph LR
     E -->|stdout| B -->|Réponse| A
 ```
 ### Description des composants
-- Frontend (HTML/CSS/JS) :
+- **Frontend (HTML/CSS/JS)** :
   - Éditeur web en HTML/CSS/JS :
      - Envoie le code via requêtes POST JSON au serveur.
      - Gère la coloration syntaxique dynamique en temps réel (highlighting personnalisé sans bibliothèque externe).
-- Serveur Python :
+     - Fichiers principaux : `frontend/index.html`, `frontend/style.css`, `frontend/main.js`.
+- **Serveur Python** :
+  - Fichier principal : `backend/server.py`
   - Service HTTP simple (http.server)
-  - Parse le code VYRN, génère du code C++ correspondant.
-  - Compile le C++ avec g++ en exécutable temporaire.
-  - Exécute le binaire et récupère la sortie pour la renvoyer.
-- Compilation & Exécution :
-  - Création de fichiers temporaires temp.cpp et temp_exec.exe (Windows).
+  - Reçoit le code, l’écrit dans `communication/input_code.txt`, puis appelle le binaire C++ (`parser_exec.exe`).
+  - Récupère la sortie ou les erreurs et les renvoie au frontend.
+- **Compilation & Exécution** :
+  - Génération de code C++ dans `communication/generated_code.cpp`.
+  - Compilation avec `g++` en `parser_exec.exe` (Windows).
+  - Exécution du binaire, sortie dans `communication/program_output.txt`.
 
 ### Structure des fichiers
 ```bash
@@ -136,17 +141,22 @@ graph LR
 │
 ├── frontend/
 │   ├── index.html                # Page principale de l'IDE
-│   ├── styles.css                # Styles CSS de l'éditeur
+│   ├── style.css                 # Styles CSS de l'éditeur
 │   ├── main.js                   # Gestion de l'éditeur : récupération du code, coloration syntaxique
 │
 ├── backend/
 │   ├── server.py                 # Mini serveur HTTP Python (reçoit JSON, transmet au C++)
 │   ├── parser/                   # Parser et génération code C++
-│   │   ├── ast_parser.cpp        # Parseur AST en C++
+│   │   ├── ast_parser.hpp        # Définition AST et parseur
 │   │   ├── code_generator.cpp    # Génération/interprétation du code
-│   │   ├── parser_exec.exe       # Le fichier exécutable généré par le c++
+│   │   ├── parser_exec.exe       # Le fichier exécutable généré par le C++
 │
 ├── communication/
+│   ├── input_code.txt            # Code VYRN reçu du frontend
+│   ├── generated_code.cpp        # Code C++ généré
+│   ├── program_output.txt        # Sortie du programme exécuté
+│   ├── compile_errors.txt        # Erreurs de compilation éventuelles
+│   ├── parsing_errors.txt        # Erreurs de parsing éventuelles
 │
 └── README.md
 ```
@@ -163,7 +173,7 @@ Merci de :
 - ✅ Gestion des types (int, float, string, bool)
 - ✅ Références entre variables / constantes
 - ✅ Coloration syntaxique personnalisée
-- ☐ Expressions arithmétiques simples et concaténation
+- ✅ Expressions arithmétiques simples
 - ☐ Opérateurs logiques (&&, ||, !)
 - ☐ Structures de contrôle (if, while, for)
 - ☐ Fonctions (déclaration + appel)
