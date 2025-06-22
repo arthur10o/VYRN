@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <cmath>
 #include <functional>
+#include <sstream>
 
 enum class TokenType {
     Identifier,
@@ -282,12 +283,19 @@ class Parser {
         };
         parse_factor = [&]() {
             double left = parse_primary();
-            while (current_token.type == TokenType::Symbol && (current_token.value == "*" || current_token.value == "/")) {
+            while (current_token.type == TokenType::Symbol && (current_token.value == "*" || current_token.value == "/" || current_token.value == "%")) {
                 std::string op = current_token.value;
                 next_token();
                 double right = parse_primary();
                 if (op == "*") left *= right;
                 else if (op == "/") left /= right;
+                else if (op == "%") {
+                    if (expected_type == "int") {
+                        left = static_cast<int>(left) % static_cast<int>(right);
+                    } else {
+                        throw ParseError("Modulo only supported for int", current_token.line, current_token.column);
+                    }
+                }
             }
             return left;
         };
@@ -306,7 +314,10 @@ class Parser {
         if (expected_type == "int") {
             return std::make_shared<IntNode>(std::to_string(static_cast<int>(result)));
         } else {
-            return std::make_shared<FloatNode>(std::to_string(result));
+            std::ostringstream oss;
+            oss.precision(20);
+            oss << std::fixed << result;
+            return std::make_shared<FloatNode>(oss.str());
         }
     }
 
