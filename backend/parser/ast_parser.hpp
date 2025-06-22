@@ -8,6 +8,8 @@
 #include <cctype>
 #include <unordered_set>
 #include <stdexcept>
+#include <cmath>
+#include <functional>
 
 enum class TokenType {
     Identifier,
@@ -112,13 +114,13 @@ public:
     LogNode(std::shared_ptr<LiteralNode> _value) : value(_value), is_variable(false) {}
 };
 
-/*class MultiOpNode : public ASTNode {
+class MultiOpNode : public ASTNode {
 public:
     std::vector<std::shared_ptr<ASTNode>> operands;
     std::vector<std::string> operators;
-
-    MultiOpNode(const std::vector<std::shared_ptr<ASTNode>>& _operands, const std::vector<std::string>& _operators) : operands(_operands), operators(_operators) {}
-};*/
+    MultiOpNode(const std::vector<std::shared_ptr<ASTNode>>& _operands, const std::vector<std::string>& _operators)
+        : operands(_operands), operators(_operators) {}
+};
 
 class ParseError : public  std::runtime_error {
 public:
@@ -258,27 +260,65 @@ class Parser {
         next_token();
     }
 
+    std::shared_ptr<LiteralNode> eval_expression(const std::string& expected_type) {
+        std::function<double()> parse_expression;
+        std::function<double()> parse_factor;
+        std::function<double()> parse_primary;
+
+        parse_primary = [&]() {
+            if (current_token.type == TokenType::Number) {
+                double val = std::stod(current_token.value);
+                next_token();
+                return val;
+            } else if (current_token.type == TokenType::Identifier && current_token.value == "sqrt") {
+                next_token();
+                expect(TokenType::Symbol, "(");
+                double val = parse_expression();
+                expect(TokenType::Symbol, ")");
+                return std::sqrt(val);
+            } else {
+                throw ParseError("Expected number or sqrt", current_token.line, current_token.column);
+            }
+        };
+        parse_factor = [&]() {
+            double left = parse_primary();
+            while (current_token.type == TokenType::Symbol && (current_token.value == "*" || current_token.value == "/")) {
+                std::string op = current_token.value;
+                next_token();
+                double right = parse_primary();
+                if (op == "*") left *= right;
+                else if (op == "/") left /= right;
+            }
+            return left;
+        };
+        parse_expression = [&]() {
+            double left = parse_factor();
+            while (current_token.type == TokenType::Symbol && (current_token.value == "+" || current_token.value == "-")) {
+                std::string op = current_token.value;
+                next_token();
+                double right = parse_factor();
+                if (op == "+") left += right;
+                else if (op == "-") left -= right;
+            }
+            return left;
+        };
+        double result = parse_expression();
+        if (expected_type == "int") {
+            return std::make_shared<IntNode>(std::to_string(static_cast<int>(result)));
+        } else {
+            return std::make_shared<FloatNode>(std::to_string(result));
+        }
+    }
+
 public:
     Parser(const std::string& _input) : lexer(_input) {
         next_token();
     }
 
     std::shared_ptr<LiteralNode> parse_value(const std::string _type) {
-        if(_type == "int") {
-            if(current_token.type == TokenType::Number) {
-                auto value = current_token.value;
-                next_token();
-                return std::make_shared<IntNode>(value);
-            } else if(current_token.type == TokenType::Identifier) {
-                std::string var_name = current_token.value;
-                next_token();
-                return std::make_shared<LiteralNode>(_type, var_name, true);
-            }
-        } else if(_type == "float") {
-            if(current_token.type == TokenType::Number || (current_token.value.find('.') == std::string::npos && current_token.value.find(',') == std::string::npos)) {
-                auto value = current_token.value;
-                next_token();
-                return std::make_shared<FloatNode>(value);
+        if(_type == "int" || _type == "float") {
+            if(current_token.type == TokenType::Number || current_token.type == TokenType::Identifier || (current_token.type == TokenType::Symbol && current_token.value == "-")) {
+                return eval_expression(_type);
             } else if(current_token.type == TokenType::Identifier) {
                 std::string var_name = current_token.value;
                 next_token();
