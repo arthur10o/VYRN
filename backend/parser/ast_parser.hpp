@@ -267,7 +267,12 @@ class Parser {
         std::function<std::string()> parse_primary;
 
         parse_primary = [&]() {
-            if (current_token.type == TokenType::Number) {
+            if (current_token.type == TokenType::Symbol && current_token.value == "(") {
+                next_token();
+                std::string val = parse_expression();
+                expect(TokenType::Symbol, ")");
+                return "(" + val + ")";
+            } else if (current_token.type == TokenType::Number) {
                 std::string val = current_token.value;
                 next_token();
                 return val;
@@ -285,7 +290,7 @@ class Parser {
                 next_token();
                 return "-" + parse_primary();
             } else {
-                throw ParseError("Expected number, variable or sqrt", current_token.line, current_token.column);
+                throw ParseError("Expected number, variable, parenthesis or sqrt", current_token.line, current_token.column);
             }
         };
         parse_factor = [&]() {
@@ -323,12 +328,8 @@ public:
 
     std::shared_ptr<LiteralNode> parse_value(const std::string _type) {
         if(_type == "int" || _type == "float") {
-            if(current_token.type == TokenType::Number || current_token.type == TokenType::Identifier || (current_token.type == TokenType::Symbol && current_token.value == "-")) {
+            if(current_token.type == TokenType::Number || current_token.type == TokenType::Identifier || (current_token.type == TokenType::Symbol && (current_token.value == "-" || current_token.value == "("))) {
                 return eval_expression(_type);
-            } else if(current_token.type == TokenType::Identifier) {
-                std::string var_name = current_token.value;
-                next_token();
-                return std::make_shared<LiteralNode>(_type, var_name, true);
             }
         } else if (_type == "bool") {
             if (current_token.value == "true" || current_token.value == "false") {
