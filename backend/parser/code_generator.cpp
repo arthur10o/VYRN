@@ -1,5 +1,4 @@
 #include "ast_parser.hpp"
-#include <sstream>
 #include <fstream>
 #include <unordered_map>
 #include <algorithm>
@@ -49,7 +48,7 @@ private:
             generate_assign(assign_node, _indent_level);
         } else if(multiop_node) {
             indent(_indent_level);
-            out << "// Expression multi-op non évaluée à la compilation (devrait être évaluée dans le parser)\n";
+            out << "// Multi-op expression not evaluated at compile time (should be evaluated in parser)\n";
         } else {
             indent(_indent_level);
             out << "// Unknown node\n";
