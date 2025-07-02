@@ -38,7 +38,9 @@ private:
         auto decl = std::dynamic_pointer_cast<DeclarationNode>(_node);
         auto log_node = std::dynamic_pointer_cast<LogNode>(_node);
         auto assign_node = std::dynamic_pointer_cast<AssignNode>(_node);
-        auto multiop_node = std::dynamic_pointer_cast<MultiOpNode>(_node);
+        auto multi_op_node = std::dynamic_pointer_cast<MultiOpNode>(_node);
+        auto multi_op_bool_node = std::dynamic_pointer_cast<MultiOpBoolNode>(_node);
+
         if(decl) {
             generate_declaration(decl, _indent_level, decl->is_const ? SymbolKind::CONSTANT : SymbolKind::VARIABLE);
         } else if(log_node) {
@@ -46,9 +48,12 @@ private:
             return;
         } else if(assign_node) {
             generate_assign(assign_node, _indent_level);
-        } else if(multiop_node) {
+        } else if(multi_op_node) {
             indent(_indent_level);
             out << "// Multi-op expression not evaluated at compile time (should be evaluated in parser)\n";
+        } else if(multi_op_bool_node) {
+            indent(_indent_level);
+            out << "// Multi-op bool expression not evaluated at compile time (should be evaluated in parser)\n";
         } else {
             indent(_indent_level);
             out << "// Unknown node\n";
