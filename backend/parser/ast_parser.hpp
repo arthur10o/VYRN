@@ -119,6 +119,7 @@ class MultiOpNode : public ASTNode {
 public:
     std::vector<std::shared_ptr<ASTNode>> operands;
     std::vector<std::string> operators;
+
     MultiOpNode(const std::vector<std::shared_ptr<ASTNode>>& _operands, const std::vector<std::string>& _operators)
         : operands(_operands), operators(_operators) {}
 };
@@ -175,7 +176,6 @@ class Lexer {
         }
     }
 
-
     char peek() const {
         return pos < input.size() ? input[pos] : '\0';
     }
@@ -218,7 +218,7 @@ public:
                 return {TokenType::Type, word, tok_line, tok_column};
             } else if(word == "true" || word == "false") {
                 return {TokenType::BOOL, word, tok_line, tok_column};
-            }else {
+            } else {
                 return {TokenType::Identifier, word, tok_line, tok_column};
             }
         }
