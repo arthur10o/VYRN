@@ -21,6 +21,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path
+        
         if path == '/':
             path = '/index.html'
 
@@ -58,6 +59,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
             return
 
         os.makedirs(os.path.dirname(CODE_FILE), exist_ok=True)
+
         with open(CODE_FILE, 'w', encoding='utf-8') as f:
             f.write(code)
 
@@ -82,6 +84,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 self._set_headers(400, 'text/plain')
                 self.wfile.write(b"Compilation errors:\n" + compile_errors.encode('utf-8'))
                 return
+            
             if os.path.exists(OUTPUT_FILE):
                 with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
                     result = f.read()
@@ -100,7 +103,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
             error_msg = f"Erreur lors de l'exécution du parseur C++:\n{e.stderr}"
             self.wfile.write(error_msg.encode('utf-8'))
 
-
 def run_server():
     print(f"Serveur démarré sur http://{HOST}:{PORT}")
     server = HTTPServer((HOST, PORT), SimpleHandler)
@@ -109,7 +111,6 @@ def run_server():
     except KeyboardInterrupt:
         print("\nArrêt du serveur.")
         server.server_close()
-
 
 if __name__ == '__main__':
     run_server()

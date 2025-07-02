@@ -167,6 +167,7 @@ graph LR
 │   ├── compile_errors.txt        # Erreurs de compilation éventuelles
 │   ├── parsing_errors.txt        # Erreurs de parsing éventuelles
 │
+├── LICENSE
 └── README.md
 ```
 

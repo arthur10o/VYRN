@@ -33,6 +33,7 @@ function displayError(message) {
 
 function displayOutput(output) {
     const outputDiv = document.getElementById('output');
+
     outputDiv.textContent = output;
     outputDiv.style.color = '#a6e22e';
 }
@@ -99,6 +100,7 @@ function highlight(text) {
         line = cleanText(line);
 
         const COMMENT_INDEX = line.indexOf('//');
+
         let codePart = COMMENT_INDEX >= 0 ? line.slice(0, COMMENT_INDEX) : line;
         let commentPart = COMMENT_INDEX >= 0 ? line.slice(COMMENT_INDEX) : '';
 
@@ -164,6 +166,7 @@ function saveCaretPosition(context){
 
 function restoreCaretPosition(context, pos) {
     let nodeStack = [context], node, charIndex = 0, foundStart = false;
+
     const RANGE = document.createRange();
     RANGE.setStart(context, 0);
     RANGE.collapse(true);
@@ -191,6 +194,7 @@ function restoreCaretPosition(context, pos) {
 function getCaretCharacterOffsetWithin(element) {
     const SEL = window.getSelection();
     let caretOffset = 0;
+
     if (SEL.rangeCount > 0) {
         const RANGE = SEL.getRangeAt(0);
         const PRE_CARET_RANGE = RANGE.cloneRange();
@@ -198,12 +202,14 @@ function getCaretCharacterOffsetWithin(element) {
         PRE_CARET_RANGE.setEnd(RANGE.endContainer, RANGE.endOffset);
         caretOffset = PRE_CARET_RANGE.toString().length;
     }
+
     return caretOffset;
 }
 
 function setCaretPosition(element, offset) {
     let charIndex = 0;
     const RANGE = document.createRange();
+
     RANGE.setStart(element, 0);
     RANGE.collapse(true);
 
@@ -247,6 +253,7 @@ EDITOR.addEventListener('input', () => {
     const CARET_POS = saveCaretPosition(EDITOR);
     const RAW_TEXT = EDITOR.innerText;
     const HIGHLIGHTED = highlight(RAW_TEXT);
+
     EDITOR.innerHTML = HIGHLIGHTED;
     restoreCaretPosition(EDITOR, CARET_POS);
 });
