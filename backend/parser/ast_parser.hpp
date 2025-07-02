@@ -124,7 +124,7 @@ public:
         : operands(_operands), operators(_operators) {}
 };
 
-class ParseError : public  std::runtime_error {
+class ParseError : public std::runtime_error {
 public:
     int line;
     int column;
@@ -222,6 +222,7 @@ public:
                 return {TokenType::Identifier, word, tok_line, tok_column};
             }
         }
+
         if(character_to_analyse == '"') {
             advance();
             size_t start = pos;
@@ -230,6 +231,7 @@ public:
             advance();
             return {TokenType::STRING, string, tok_line, tok_column};
         }
+
         if(std::isdigit(character_to_analyse)) {
             size_t start = pos;
             bool has_dot = false;
@@ -293,6 +295,7 @@ class Parser {
                 throw ParseError("Expected number, variable, parenthesis or sqrt", current_token.line, current_token.column);
             }
         };
+
         parse_factor = [&]() {
             std::string left = parse_primary();
             while (current_token.type == TokenType::Symbol && (current_token.value == "*" || current_token.value == "/" || current_token.value == "%")) {
@@ -303,6 +306,7 @@ class Parser {
             }
             return left;
         };
+
         parse_expression = [&]() {
             std::string left = parse_factor();
             while (current_token.type == TokenType::Symbol && (current_token.value == "+" || current_token.value == "-")) {
@@ -313,6 +317,7 @@ class Parser {
             }
             return left;
         };
+
         std::string expr = parse_expression();
         if (expected_type == "int") {
             return std::make_shared<IntNode>(expr);
@@ -360,11 +365,13 @@ public:
         if(current_token.type != TokenType::Type) {
             throw ParseError("Expected type", current_token.line, current_token.column);
         }
+
         std::string type = current_token.value;
         next_token();
 
         if (current_token.type != TokenType::Identifier)
             throw ParseError("Expected identifier", current_token.line, current_token.column);
+
         std::string name = current_token.value;
         next_token();
 

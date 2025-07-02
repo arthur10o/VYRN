@@ -19,8 +19,8 @@ class CodeGenerator {
     std::ostringstream out;
     std::unordered_map<std::string, SymbolInfo> symbol_table;
 
-    void indent(int level) {
-        for(int i = 0; i < level; i++) {
+    void indent(int _level) {
+        for(int i = 0; i < _level; i++) {
             out << "    ";
         }
     }
@@ -144,12 +144,6 @@ private:
     std::string convert_type(const std::string& original_type) {
         if(original_type == "string") {
             return "std::string";
-        } else if(original_type == "int") {
-            return "int";
-        } else if(original_type == "float") {
-            return "float";
-        } else if(original_type == "bool") {
-            return "bool";
         }
         return original_type;
     }
@@ -203,22 +197,24 @@ std::vector<std::string> split_instructions(const std::string& code) {
     return instructions;
 }
 
-
 int main() {
     std::ostringstream error_output;
 
     try {
         std::ifstream file("communication/input_code.txt");
+
         if(!file) {
             std::cerr  << "Error: unable to open input_code.txt.\n";
             return 1;
         }
+
         std::stringstream buffer;
         buffer << file.rdbuf();
         std::string code = buffer.str();
 
         CodeGenerator cg;
         std::ostringstream all_generated_code;
+
         all_generated_code << "#include <iostream>\n";
         all_generated_code << "#include <string>\n";
         all_generated_code << "#include <iomanip>\n";
@@ -246,20 +242,21 @@ int main() {
                     error_output << "Unknown declaration";
                     continue;
                 }
-
                 all_generated_code << cg.generate(node);
             } catch (const ParseError& err) {
                 error_output << "Error: " << err.what() << "\n";
             }
         }
+
         all_generated_code << "\n";
-        all_generated_code << "    return 0;";
+        all_generated_code << "    return 0;\n";
         all_generated_code << "}";
 
         file.close();
 
         const std::string generated_filename = "communication/generated_code.cpp";
         std::ofstream output(generated_filename);
+
         if(!output) {
             std::cerr << "Error: unable to write to " << generated_filename << "\n";
             return 1;
@@ -293,16 +290,17 @@ int main() {
         }
 
         std::ifstream program_output(output_capture_file);
+
         if(program_output) {
             std::cout << "===== Output of generated program =====\n";
             std::cout << program_output.rdbuf();
             std::cout << "======================================\n";
             program_output.close();
             std::ofstream output_bis ("communication/program_output.txt", std::ios::app);
-        if(output_bis) {
-            output_bis << "\n✔ Le code a été exécuté avec succès.\n";
-            output_bis.close();
-        }
+            if(output_bis) {
+                output_bis << "\n✔ Le code a été exécuté avec succès.\n";
+                output_bis.close();
+            }
         } else {
             std::cerr << "Error: unable to read program output.\n";
             return 1;
