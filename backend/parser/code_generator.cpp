@@ -271,7 +271,7 @@ int main() {
         output.close();
 
         const std::string executable_name = "communication\\generated_program.exe";
-        std::string compile_command = "g++ -std=c++17 " + generated_filename + " -o " + executable_name + " 2> communication/compile_errors.txt";
+        std::string compile_command = "g++ -std=c++17 -O0 -pipe -march=native " + generated_filename + " -o " + executable_name + " 2> communication/compile_errors.txt";
         int compile_result = std::system(compile_command.c_str());
 
         if (compile_result != 0) {
