@@ -376,10 +376,27 @@ class Parser {
                 bool val = to_bool(current_token.value);
                 next_token();
                 return val;
-            } else if (current_token.type == TokenType::Identifier) {
-                std::string var_name = current_token.value;
-                next_token();
-                return to_bool(var_name);
+            } else if (current_token.type == TokenType::Number || current_token.type == TokenType::Identifier || (current_token.type == TokenType::Symbol && current_token.value == "(")) {
+                auto left = eval_expression("float");
+                if ((current_token.type == TokenType::Symbol || current_token.type == TokenType::BooleanOperator) &&
+                   (current_token.value == "<" || current_token.value == ">" ||
+                    current_token.value == "<=" || current_token.value == ">=" ||
+                    current_token.value == "==" || current_token.value == "!=")) {
+                    std::string op = current_token.value;
+                    next_token();
+                    auto right = eval_expression("float");
+                    float left_value = std::stof(left->value);
+                    float right_value = std::stof(right->value);
+                    if (op == "<") return left_value < right_value;
+                    else if (op == ">") return left_value > right_value;
+                    else if (op == "<=") return left_value <= right_value;
+                    else if (op == ">=") return left_value >= right_value;
+                    else if (op == "==") return left_value == right_value;
+                    else if (op == "!=") return left_value != right_value;
+                    else throw ParseError("unauthorized comparison operation", current_token.line, current_token.column);
+                } else {
+                    throw ParseError("unauthorized comparison operation", current_token.line, current_token.column);
+                }
             } else {
                 throw ParseError("Expected boolean, variable or parenthesis", current_token.line, current_token.column);
             }
@@ -519,7 +536,8 @@ public:
                 next_token();
                 return std::make_shared<BoolNode>(value);
             } else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol ||
-                       current_token.type == TokenType::Identifier || current_token.type == TokenType::BOOL) {
+                       current_token.type == TokenType::Identifier || current_token.type == TokenType::BOOL ||
+                       current_token.type == TokenType::Number) {
                 auto boolNode = eval_bool_expression();
                 return boolNode;
             }
