@@ -51,7 +51,7 @@ header h1 {
 .comment { color: #6b8f74; font-style: italic; }
 .variable { color: #9bbcf7; font-weight: 600; }
 .constante { color: #7d9eea; font-weight: bold; }
-.function { color: #f38181;}
+.function { color: #f38181; }
 .type { color: #96a0fc; font-weight: 500; }
 
 .controls {

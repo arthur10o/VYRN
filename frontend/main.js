@@ -2,39 +2,39 @@ async function run_code() {
     const CODE = cleanText(document.getElementById('editor').innerText);
 
     try {
-        const response = await fetch('/run', {
+        const RESPONSE = await fetch('/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ CODE })
         });
 
-        const text = await response.text();
+        const TEXT = await RESPONSE.text();
 
-        if (text.includes("Le code a été exécuté avec succès.")) {
-            displayOutput(text);
+        if (TEXT.includes("The code has been successfully executed")) {
+            displayOutput(TEXT);
         } else {
-            displayError(text);
+            displayError(TEXT);
         }
     } catch (err) {
-        displayError("Erreur serveur: " + err.message);
+        displayError("Server error: " + err.message);
     }
 }
 
-function displayError(message) {
-    const outputDiv = document.getElementById('output');
-    if(message.includes("Le code a été exécuté avec succès.")) {
-        outputDiv.style.color = '#a6e22e';
-        outputDiv.textContent = message;
+function displayError(_message) {
+    const OUTPUT_DIV = document.getElementById('output');
+    if (_message.includes("The code has been successfully executed")) {
+        OUTPUT_DIV.style.color = '#a6e22e';
+        OUTPUT_DIV.textContent = _message;
     } else {
-        outputDiv.textContent = "Erreur :\n" + message;
-        outputDiv.style.color = 'red';
+        OUTPUT_DIV.textContent = "Error :\n" + _message;
+        OUTPUT_DIV.style.color = 'red';
     }
 }
 
-function displayOutput(output) {
+function displayOutput(_output) {
     const outputDiv = document.getElementById('output');
 
-    outputDiv.textContent = output;
+    outputDiv.textContent = _output;
     outputDiv.style.color = '#a6e22e';
 }
 
@@ -53,35 +53,35 @@ const COMMENT_PATTERN = /\/\*[\s\S]*?\*\//g;
 let declaredVariables = new Set();
 let declaredConstante = new Set();
 
-function escapeHtml(text) {
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function escapeHtml(_text) {
+    return _text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function cleanText(text) {
-    return text.replace(/[\u200B-\u200D\uFEFF]/g, '');
+function cleanText(_text) {
+    return _text.replace(/[\u200B-\u200D\uFEFF]/g, '');
 }
 
-function highlight(text) {
-    text = escapeHtml(text);
+function highlight(_text) {
+    _text = escapeHtml(_text);
     declaredVariables.clear();
     declaredConstante.clear();
 
     const STRINGS = [];
     const COMMENTS = [];
 
-    text = text.replace(STRING_PATTERN, match => {
+    _text = _text.replace(STRING_PATTERN, match => {
         const PLACEHOLDER = `__STRING${STRINGS.length}__`;
         STRINGS.push(match);
         return PLACEHOLDER;
     });
 
-    text = text.replace(COMMENT_PATTERN, match => {
+    _text = _text.replace(COMMENT_PATTERN, match => {
         const PLACEHOLDER = `__COMMENT${COMMENTS.length}__`;
         COMMENTS.push(match);
         return PLACEHOLDER;
     });
 
-    const LINES = text.split('\n');
+    const LINES = _text.split('\n');
 
     LINES.forEach(line => {
         const DECLARATION_MATCH = line.match(/\b(let|const)\s+(int|float|bool|string)\s+([a-zA-Z_]\w*)\s*=/);
@@ -154,28 +154,28 @@ function highlight(text) {
     return HIGHLIGHTED_LINES.join('<br>');
 }
 
-function saveCaretPosition(context){
+function saveCaretPosition(_context){
     const SELECTION = window.getSelection();
     if (SELECTION.rangeCount === 0) return 0;
     const RANGE = SELECTION.getRangeAt(0);
     const PRE_RANGE = RANGE.cloneRange();
-    PRE_RANGE.selectNodeContents(context);
+    PRE_RANGE.selectNodeContents(_context);
     PRE_RANGE.setEnd(RANGE.startContainer, RANGE.startOffset);
     return PRE_RANGE.toString().length;
 }
 
-function restoreCaretPosition(context, pos) {
-    let nodeStack = [context], node, charIndex = 0, foundStart = false;
+function restoreCaretPosition(_context, _pos) {
+    let nodeStack = [_context], node, charIndex = 0, foundStart = false;
 
     const RANGE = document.createRange();
-    RANGE.setStart(context, 0);
+    RANGE.setStart(_context, 0);
     RANGE.collapse(true);
 
     while ((node = nodeStack.pop()) && !foundStart) {
         if (node.nodeType === 3) {
             const NEXT_CHAR_INDEX = charIndex + node.length;
-            if (pos >= charIndex && pos <= NEXT_CHAR_INDEX) {
-                RANGE.setStart(node, pos - charIndex);
+            if (_pos >= charIndex && _pos <= NEXT_CHAR_INDEX) {
+                RANGE.setStart(node, _pos - charIndex);
                 RANGE.collapse(true);
                 foundStart = true;
             }
@@ -191,14 +191,14 @@ function restoreCaretPosition(context, pos) {
     SEL.addRange(RANGE);
 }
 
-function getCaretCharacterOffsetWithin(element) {
+function getCaretCharacterOffsetWithin(_element) {
     const SEL = window.getSelection();
     let caretOffset = 0;
 
     if (SEL.rangeCount > 0) {
         const RANGE = SEL.getRangeAt(0);
         const PRE_CARET_RANGE = RANGE.cloneRange();
-        PRE_CARET_RANGE.selectNodeContents(element);
+        PRE_CARET_RANGE.selectNodeContents(_element);
         PRE_CARET_RANGE.setEnd(RANGE.endContainer, RANGE.endOffset);
         caretOffset = PRE_CARET_RANGE.toString().length;
     }
@@ -206,21 +206,21 @@ function getCaretCharacterOffsetWithin(element) {
     return caretOffset;
 }
 
-function setCaretPosition(element, offset) {
+function setCaretPosition(_element, _offset) {
     let charIndex = 0;
     const RANGE = document.createRange();
 
-    RANGE.setStart(element, 0);
+    RANGE.setStart(_element, 0);
     RANGE.collapse(true);
 
-    const NODE_STACK = [element];
+    const NODE_STACK = [_element];
     let node, found = false;
 
     while (!found && (node = NODE_STACK.pop())) {
         if (node.nodeType === 3) {
             const NEXT_CHAR_INDEX = charIndex + node.length;
-            if (offset <= NEXT_CHAR_INDEX) {
-                RANGE.setStart(node, offset - charIndex);
+            if (_offset <= NEXT_CHAR_INDEX) {
+                RANGE.setStart(node, _offset - charIndex);
                 RANGE.collapse(true);
                 found = true;
             } else {
@@ -239,8 +239,8 @@ function setCaretPosition(element, offset) {
     SEL.addRange(RANGE);
 }
 
-function getPlainTextWithLineBreaks(element) {
-    let html = element.innerHTML;
+function getPlainTextWithLineBreaks(_element) {
+    let html = _element.innerHTML;
 
     html = html.replace(/<br\s*\/?>/gi, '\n');
 
@@ -265,13 +265,13 @@ EDITOR.addEventListener('keydown', e => {
         const RANGE = SELECTION.getRangeAt(0);
         RANGE.deleteContents();
 
-        const br = document.createElement('br');
-        const textNode = document.createTextNode('\u200B');
+        const BR = document.createElement('br');
+        const TEXT_NODE = document.createTextNode('\u200B');
 
-        RANGE.insertNode(br);
-        RANGE.setStartAfter(br);
-        RANGE.insertNode(textNode);
-        range.setStart(textNode, 1);
+        RANGE.insertNode(BR);
+        RANGE.setStartAfter(BR);
+        RANGE.insertNode(TEXT_NODE);
+        range.setStart(TEXT_NODE, 1);
         range.collapse(true);
 
         SELECTION.removeAllRanges();

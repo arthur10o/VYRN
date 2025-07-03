@@ -46,7 +46,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({'error': 'Code trop volumineux'}).encode('utf-8'))
             return
         body = self.rfile.read(content_length)
-        ##print("Reçu POST /run avec body:", body[:200].decode('utf-8', errors='replace'))
         try:
             data = json.loads(body)
             code = data.get('CODE')
@@ -55,7 +54,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
             if len(code) > MAX_CODE_SIZE:
                 raise ValueError("Code trop volumineux")
         except Exception as e:
-            ##print("Erreur de parsing JSON:", e)
             self._set_headers(400, 'application/json')
             self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
             return
@@ -77,7 +75,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
             return
         except subprocess.CalledProcessError as e:
             self._set_headers(500, 'text/plain')
-            ##print("Erreur subprocess:", e.stderr[:200])
             error_msg = f"Erreur lors de l'exécution du parseur C++:\n{e.stderr}".encode('utf-8')
             self.wfile.write(error_msg)
             return
@@ -86,7 +83,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
             with open(PARSING_ERRORS_PATH, 'r', encoding='utf-8') as f:
                 error_content = f.read()
             if error_content:
-                ##print("Parsing errors détectés :", error_content[:200])
                 self._set_headers(400, 'text/plain')
                 self.wfile.write(error_content.encode('utf-8'))
                 os.remove(PARSING_ERRORS_PATH)
@@ -96,7 +92,6 @@ class SimpleHandler(BaseHTTPRequestHandler):
             with open(COMPILE_ERRORS_PATH, 'r', encoding='utf-8') as f:
                 compile_errors = f.read()
             if compile_errors:
-                ##print("Compile errors détectés :", compile_errors[:200])
                 self._set_headers(400, 'text/plain')
                 self.wfile.write(("Compilation errors:\n" + compile_errors).encode('utf-8'))
                 os.remove(COMPILE_ERRORS_PATH)

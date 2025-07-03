@@ -143,6 +143,15 @@ public:
         : operands(_operands), operators(_operators) {}
 };
 
+class CompareNode : public ASTNode {
+public:
+    std::vector<std::shared_ptr<ASTNode>> operands;
+    std::vector<std::string> operators;
+
+    CompareNode(const std::vector<std::shared_ptr<ASTNode>>& _operands, const std::vector<std::string>&  _operators)
+        : operands(_operands), operators(_operators) {}
+};
+
 class MultiOpBoolNode : public ASTNode {
 public:
     std::vector<std::shared_ptr<ASTNode>> operands;
@@ -209,9 +218,9 @@ class Lexer {
     }
 
     char advance() {
-        if(pos >= input.size()) return '\0';
+        if (pos >= input.size()) return '\0';
         char character_to_analyse = input[pos++];
-        if(character_to_analyse == '\n') {
+        if (character_to_analyse == '\n') {
             line++;
             column = 1;
         } else {
@@ -220,8 +229,8 @@ class Lexer {
         return character_to_analyse;
     }
 
-    bool is_identifier_character(char character_to_identified) {
-        return std::isalnum(character_to_identified) || character_to_identified == '_';
+    bool is_identifier_character(char _character_to_identified) {
+        return std::isalnum(_character_to_identified) || _character_to_identified == '_';
     }
 
 public:
@@ -229,13 +238,13 @@ public:
 
     Token next_token() {
         skip_white_space();
-        if(pos >= input.size()) return {TokenType::EndOfFile, "", line, column};
+        if (pos >= input.size()) return {TokenType::EndOfFile, "", line, column};
 
         char character_to_analyse = peek();
         int tok_line  = line;
         int tok_column = column;
 
-        static const std::vector<std::string> two_char_ops = {
+        static const std::vector<std::string> two_character_operations = {
             "&&",
             "||",
             "==",
@@ -245,7 +254,7 @@ public:
             "=>"
         };
 
-        static const std::vector<std::string> three_char_ops = {
+        static const std::vector<std::string> three_character_operations = {
             "!&&",
             "!||",
             "!=>"
@@ -253,8 +262,8 @@ public:
 
         if (pos + 2 < input.size()) {
             std::string three = input.substr(pos, 3);
-            for(const auto& op : three_char_ops) {
-                if(three == op) {
+            for (const auto& op : three_character_operations) {
+                if (three == op) {
                     pos += 3;
                     column += 3;
                     return {TokenType::BooleanOperator, op, tok_line, tok_column};
@@ -264,8 +273,8 @@ public:
 
         if (pos + 1 < input.size()) {
             std::string two = input.substr(pos, 2);
-            for(const auto& op : two_char_ops) {
-                if(two == op) {
+            for (const auto& op : two_character_operations) {
+                if (two == op) {
                     pos += 2;
                     column += 2;
                     return {TokenType::BooleanOperator, op, tok_line, tok_column};
@@ -278,11 +287,11 @@ public:
             while(pos < input.size() && is_identifier_character(input[pos])) advance();
             std::string word = input.substr(start, pos - start);
 
-            if(keywords.find(word) != keywords.end()) {
+            if (keywords.find(word) != keywords.end()) {
                 return {TokenType::Keyword, word, tok_line, tok_column};
-            } else if(types.find(word) != types.end()) {
+            } else if (types.find(word) != types.end()) {
                 return {TokenType::Type, word, tok_line, tok_column};
-            } else if(word == "true" || word == "false") {
+            } else if (word == "true" || word == "false") {
                 return {TokenType::BOOL, word, tok_line, tok_column};
             } else if (boolean_operator.find(word) != boolean_operator.end()) {
                 return {TokenType::BooleanOperator, word, tok_line, tok_column};
@@ -291,20 +300,20 @@ public:
             }
         }
 
-        if(character_to_analyse == '"') {
+        if (character_to_analyse == '"') {
             advance();
             size_t start = pos;
-            while(pos < input.size() && peek() != '"') advance();
+            while (pos < input.size() && peek() != '"') advance();
             std::string string = input.substr(start, pos - start);
             advance();
             return {TokenType::STRING, string, tok_line, tok_column};
         }
 
-        if(std::isdigit(character_to_analyse)) {
+        if (std::isdigit(character_to_analyse)) {
             size_t start = pos;
             bool has_dot = false;
-            while(pos < input.size() && (std::isdigit(input[pos]) || (input[pos] == ',' || input[pos] == '.'))) {
-                if(input[pos] == ',' || input[pos] == '.') has_dot = true;
+            while (pos < input.size() && (std::isdigit(input[pos]) || (input[pos] == ',' || input[pos] == '.'))) {
+                if (input[pos] == ',' || input[pos] == '.') has_dot = true;
                 advance();
             }
             std::string number = input.substr(start, pos - start);
@@ -336,8 +345,8 @@ class Parser {
         current_token = lexer.next_token();
     }
 
-    void expect(TokenType type, const std::string& value = "") {
-        if(current_token.type != type || (!value.empty() && current_token.value != value)) {
+    void expect(TokenType _type, const std::string& _value = "") {
+        if (current_token.type != _type || (!_value.empty() && current_token.value != _value)) {
             throw ParseError("Unexpected token: '" + current_token.value + "'", current_token.line, current_token.column);
         }
         next_token();
@@ -349,8 +358,8 @@ class Parser {
         std::function<bool()> parse_not;
         std::function<bool()> parse_and;
 
-        auto to_bool = [](const std::string& value) -> bool {
-            return value == "true";
+        auto to_bool = [](const std::string& _value) -> bool {
+            return _value == "true";
         };
 
         parse_primary = [&]() -> bool {
@@ -363,7 +372,7 @@ class Parser {
                 bool val = to_bool(current_token.value);
                 next_token();
                 return val;
-            } else if(current_token.type == TokenType::Identifier) {
+            } else if (current_token.type == TokenType::Identifier) {
                 std::string var_name = current_token.value;
                 next_token();
                 return to_bool(var_name);
@@ -373,7 +382,7 @@ class Parser {
         };
 
         parse_not = [&]() -> bool {
-            if(current_token.type == TokenType::BooleanOperator && current_token.value == "!") {
+            if (current_token.type == TokenType::BooleanOperator && current_token.value == "!") {
                 next_token();
                 return !parse_not();
             } else {
@@ -383,19 +392,19 @@ class Parser {
 
         parse_and = [&]() -> bool {
             bool left = parse_not();
-            while(current_token.type == TokenType::BooleanOperator && (current_token.value == "&&" || current_token.value == "!&&")) {
+            while (current_token.type == TokenType::BooleanOperator && (current_token.value == "&&" || current_token.value == "!&&")) {
                 std::string op = current_token.value;
                 next_token();
                 bool right = parse_not();
-                if(op == "&&") left = left && right;
-                else if(op == "!&&") left = !(left && right);
+                if (op == "&&") left = left && right;
+                else if (op == "!&&") left = !(left && right);
             }
             return left;
         };
 
         parse_expression = [&]() -> bool {
             bool left = parse_and();
-            while(current_token.type == TokenType::BooleanOperator && 
+            while (current_token.type == TokenType::BooleanOperator && 
                 (current_token.value == "||" || current_token.value == "!||" ||
                 current_token.value == "xor" || current_token.value == "nxor" ||
                 current_token.value == "=>" || current_token.value == "!=>" ||
@@ -406,18 +415,18 @@ class Parser {
                 next_token();
                 bool right = parse_and();
 
-                if(op == "||") left = left || right;
-                else if(op == "!||") left = !(left || right);
-                else if(op == "xor") left = left != right;
-                else if(op == "nxor") left = left == right;
-                else if(op == "==") left = left == right;
-                else if(op == "!=") left = left != right;
-                else if(op == "=>") left = (!left) || right;
-                else if(op == "!=>") left = left && !right;
-                else if(op == "<") left = (!left) && right;
-                else if(op == "<=") left = (!left) || right;
-                else if(op == ">") left = left && (!right);
-                else if(op == ">=") left = left || (!right);
+                if (op == "||") left = left || right;
+                else if (op == "!||") left = !(left || right);
+                else if (op == "xor") left = left != right;
+                else if (op == "nxor") left = left == right;
+                else if (op == "==") left = left == right;
+                else if (op == "!=") left = left != right;
+                else if (op == "=>") left = (!left) || right;
+                else if (op == "!=>") left = left && !right;
+                else if (op == "<") left = (!left) && right;
+                else if (op == "<=") left = (!left) || right;
+                else if (op == ">") left = left && (!right);
+                else if (op == ">=") left = left || (!right);
             }
             return left;
         };
@@ -426,7 +435,7 @@ class Parser {
         return std::make_shared<BoolNode>(result ? "true" : "false");
     }
 
-    std::shared_ptr<LiteralNode> eval_expression(const std::string& expected_type) {
+    std::shared_ptr<LiteralNode> eval_expression(const std::string& _expected_type) {
         std::function<std::string()> parse_expression;
         std::function<std::string()> parse_factor;
         std::function<std::string()> parse_primary;
@@ -482,7 +491,7 @@ class Parser {
         };
 
         std::string expr = parse_expression();
-        if (expected_type == "int") {
+        if (_expected_type == "int") {
             return std::make_shared<IntNode>(expr);
         } else {
             return std::make_shared<FloatNode>(expr);
@@ -495,8 +504,9 @@ public:
     }
 
     std::shared_ptr<LiteralNode> parse_value(const std::string _type) {
-        if(_type == "int" || _type == "float") {
-            if(current_token.type == TokenType::Number || current_token.type == TokenType::Identifier || (current_token.type == TokenType::Symbol && (current_token.value == "-" || current_token.value == "("))) {
+        if (_type == "int" || _type == "float") {
+            if (current_token.type == TokenType::Number || current_token.type == TokenType::Identifier ||
+               (current_token.type == TokenType::Symbol && (current_token.value == "-" || current_token.value == "("))) {
                 return eval_expression(_type);
             }
         } else if (_type == "bool") {
@@ -504,7 +514,8 @@ public:
                 auto value = current_token.value;
                 next_token();
                 return std::make_shared<BoolNode>(value);
-            } else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol || current_token.type == TokenType::Identifier || current_token.type == TokenType::BOOL) {
+            } else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol ||
+                       current_token.type == TokenType::Identifier || current_token.type == TokenType::BOOL) {
                 auto boolNode = eval_bool_expression();
                 return boolNode;
             }
@@ -522,9 +533,9 @@ public:
         throw ParseError("Unknown type", current_token.line, current_token.column);
     }
 
-    std::shared_ptr<ASTNode> parse_declaration(bool is_const) {
+    std::shared_ptr<ASTNode> parse_declaration(bool _is_const) {
         next_token();
-        if(current_token.type != TokenType::Type) {
+        if (current_token.type != TokenType::Type) {
             throw ParseError("Expected type", current_token.line, current_token.column);
         }
 
@@ -540,7 +551,7 @@ public:
         expect(TokenType::Symbol, "=");
         auto value_node = parse_value(type);
 
-        return std::make_shared<DeclarationNode>(is_const, type, name, value_node, false);
+        return std::make_shared<DeclarationNode>(_is_const, type, name, value_node, false);
     }
 
     std::shared_ptr<ASTNode> parse_assign() {
@@ -549,16 +560,14 @@ public:
         }
 
         std::string target = current_token.value;
-
         next_token();
-
         expect(TokenType::Symbol, "=");
 
-        if(current_token.type == TokenType::Identifier) {
+        if (current_token.type == TokenType::Identifier) {
             std::string source = current_token.value;
             next_token();
             return std::make_shared<AssignNode>(target, source, true);
-        } else if(current_token.type == TokenType::Number || current_token.type == TokenType::STRING || current_token.type == TokenType::BOOL) {
+        } else if (current_token.type == TokenType::Number || current_token.type == TokenType::STRING || current_token.type == TokenType::BOOL) {
             std::string source = current_token.value;
             next_token();
             return std::make_shared<AssignNode>(target, source, false);
@@ -579,27 +588,27 @@ public:
         expect(TokenType::Identifier, "log");
         expect(TokenType::Symbol, "(");
 
-        if(current_token.type == TokenType::Identifier) {
+        if (current_token.type == TokenType::Identifier) {
             std::string var_name = current_token.value;
             next_token();
             expect(TokenType::Symbol, ")");   
             return std::make_shared<LogNode>(var_name);
         } else {
-            if(current_token.type == TokenType::Number) {
+            if (current_token.type == TokenType::Number) {
                 std::string value = current_token.value;
                 expect(TokenType::Symbol, ")");   
                 next_token();
-                if(value.find('.') != std::string::npos || value.find(',') != std::string::npos) {
+                if (value.find('.') != std::string::npos || value.find(',') != std::string::npos) {
                     return std::make_shared<LogNode>(std::make_shared<FloatNode>(value));
                 } else {
                     return std::make_shared<LogNode>(std::make_shared<IntNode>(value));
                 }
-            } else if(current_token.type == TokenType::STRING) {
+            } else if (current_token.type == TokenType::STRING) {
                 std::string value = current_token.value;
                 next_token();
                 expect(TokenType::Symbol, ")");   
                 return std::make_shared<LogNode>(std::make_shared<StringNode>(value));
-            } else if(current_token.type == TokenType::BOOL) {
+            } else if (current_token.type == TokenType::BOOL) {
                 std::string value = current_token.value;
                 next_token();
                 expect(TokenType::Symbol, ")");   

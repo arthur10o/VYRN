@@ -41,17 +41,17 @@ private:
         auto multi_op_node = std::dynamic_pointer_cast<MultiOpNode>(_node);
         auto multi_op_bool_node = std::dynamic_pointer_cast<MultiOpBoolNode>(_node);
 
-        if(decl) {
+        if (decl) {
             generate_declaration(decl, _indent_level, decl->is_const ? SymbolKind::CONSTANT : SymbolKind::VARIABLE);
-        } else if(log_node) {
+        } else if (log_node) {
             generate_log(log_node, _indent_level);
             return;
-        } else if(assign_node) {
+        } else if (assign_node) {
             generate_assign(assign_node, _indent_level);
-        } else if(multi_op_node) {
+        } else if (multi_op_node) {
             indent(_indent_level);
             out << "// Multi-op expression not evaluated at compile time (should be evaluated in parser)\n";
-        } else if(multi_op_bool_node) {
+        } else if (multi_op_bool_node) {
             indent(_indent_level);
             out << "// Multi-op bool expression not evaluated at compile time (should be evaluated in parser)\n";
         } else {
@@ -88,7 +88,7 @@ private:
             if (_node->is_reference) {
                 out << _node->source_variable;
             } else {
-                if(symbol_table[_node->target_variable].types == "string" && _node->source_variable.find('"') == std::string::npos) {
+                if (symbol_table[_node->target_variable].types == "string" && _node->source_variable.find('"') == std::string::npos) {
                     out << "\"" << _node->source_variable << "\"";
                 } else {
                     out << format_literal(std::make_shared<LiteralNode>("", _node->source_variable));
@@ -146,45 +146,45 @@ private:
         }
     }
 
-    std::string convert_type(const std::string& original_type) {
-        if(original_type == "string") {
+    std::string convert_type(const std::string& _original_type) {
+        if(_original_type == "string") {
             return "std::string";
         }
-        return original_type;
+        return _original_type;
     }
 };
 
-std::string trim(const std::string& s) {
-    auto start = s.find_first_not_of(" \t\r\n");
-    auto end = s.find_last_not_of(" \t\r\n");
-    return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
+std::string trim(const std::string& _s) {
+    auto start = _s.find_first_not_of(" \t\r\n");
+    auto end = _s.find_last_not_of(" \t\r\n");
+    return (start == std::string::npos) ? "" : _s.substr(start, end - start + 1);
 }
 
-std::vector<std::string> split_instructions(const std::string& code) {
+std::vector<std::string> split_instructions(const std::string& _code) {
     std::vector<std::string> instructions;
     std::string instruction;
     bool in_multi_line_comment = false;
 
-    for (size_t i = 0; i < code.size(); ) {
-        if (!in_multi_line_comment && i + 1 < code.size() && code[i] == '/' && code[i + 1] == '*') {
+    for (size_t i = 0; i < _code.size(); ) {
+        if (!in_multi_line_comment && i + 1 < _code.size() && _code[i] == '/' && _code[i + 1] == '*') {
             in_multi_line_comment = true;
             i += 2;
-        } else if (in_multi_line_comment && i + 1 < code.size() && code[i] == '*' && code[i + 1] == '/') {
+        } else if (in_multi_line_comment && i + 1 < _code.size() && _code[i] == '*' && _code[i + 1] == '/') {
             in_multi_line_comment = false;
             i += 2;
-        } else if (!in_multi_line_comment && i + 1 < code.size() && code[i] == '/' && code[i + 1] == '/') {
-            while (i < code.size() && code[i] != '\n') {
+        } else if (!in_multi_line_comment && i + 1 < _code.size() && _code[i] == '/' && _code[i + 1] == '/') {
+            while (i < _code.size() && _code[i] != '\n') {
                 i++;
             }
         } else if (!in_multi_line_comment) {
-            if (code[i] == ';') {
+            if (_code[i] == ';') {
                 instruction = trim(instruction);
                 if (!instruction.empty()) {
                     instructions.push_back(instruction);
                 }
                 instruction.clear();
             } else {
-                instruction += code[i];
+                instruction += _code[i];
             }
             i++;
         } else {
@@ -208,7 +208,7 @@ int main() {
     try {
         std::ifstream file("communication/input_code.txt");
 
-        if(!file) {
+        if (!file) {
             std::cerr  << "Error: unable to open input_code.txt.\n";
             return 1;
         }
@@ -220,17 +220,11 @@ int main() {
         CodeGenerator cg;
         std::ostringstream all_generated_code;
 
-        all_generated_code << "#include <iostream>\n";
-        all_generated_code << "#include <string>\n";
-        all_generated_code << "#include <iomanip>\n";
-        all_generated_code << "#include <cmath>\n";
-        all_generated_code << "int main() {\n";
-        all_generated_code << "    std::cout << std::boolalpha;\n";
-        all_generated_code << "    std::cout << std::setprecision(21);\n";
+        all_generated_code << "#include <iostream>\n#include <string>\n#include <iomanip>\n#include <cmath>\nint main() {\nstd::cout << std::boolalpha;\nstd::cout << std::setprecision(21);\n";
 
         std::vector<std::string> parts = split_instructions(code);
 
-        for(const auto& instruction : parts) {
+        for (const auto& instruction : parts) {
             try {
                 Parser parser(instruction);
                 std::shared_ptr<ASTNode> node;
@@ -253,16 +247,14 @@ int main() {
             }
         }
 
-        all_generated_code << "\n";
-        all_generated_code << "    return 0;\n";
-        all_generated_code << "}";
+        all_generated_code << "\n    return 0;\n}";
 
         file.close();
 
         const std::string generated_filename = "communication/generated_code.cpp";
         std::ofstream output(generated_filename);
 
-        if(!output) {
+        if (!output) {
             std::cerr << "Error: unable to write to " << generated_filename << "\n";
             return 1;
         }
@@ -276,7 +268,7 @@ int main() {
 
         if (compile_result != 0) {
             std::ifstream compile_errors("communication/compile_errors.txt");
-            if(compile_errors) {
+            if (compile_errors) {
                 std::cerr << "Compilation errors:\n";
                 std::cerr << compile_errors.rdbuf();
                 compile_errors.close();
@@ -289,21 +281,21 @@ int main() {
         const std::string output_capture_file = "communication/program_output.txt";
         std::string run_command = ".\\" + executable_name + " > " + output_capture_file + " 2>&1";
         int run_result = std::system(run_command.c_str());
-        if(run_result != 0) {
+        if (run_result != 0) {
             std::cerr << "Error: execution of generated program failed.\n";
             return 1;
         }
 
         std::ifstream program_output(output_capture_file);
 
-        if(program_output) {
+        if (program_output) {
             std::cout << "===== Output of generated program =====\n";
             std::cout << program_output.rdbuf();
             std::cout << "======================================\n";
             program_output.close();
             std::ofstream output_bis ("communication/program_output.txt", std::ios::app);
-            if(output_bis) {
-                output_bis << "\n✔ Le code a été exécuté avec succès.\n";
+            if (output_bis) {
+                output_bis << "\n✔ The code has been successfully executed...\n";
                 output_bis.close();
             }
         } else {
