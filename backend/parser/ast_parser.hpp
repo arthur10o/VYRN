@@ -543,7 +543,7 @@ public:
         return std::make_shared<DeclarationNode>(is_const, type, name, value_node, false);
     }
 
-    std::shared_ptr<ASTNode> parse_assign() {        
+    std::shared_ptr<ASTNode> parse_assign() {
         if (current_token.type != TokenType::Identifier) {
             throw ParseError("Expected target variable", current_token.line, current_token.column);
         }
