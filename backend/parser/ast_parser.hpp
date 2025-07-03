@@ -118,9 +118,13 @@ public:
     std::string target_variable;
     std::string source_variable;
     bool is_reference;
+    std::shared_ptr<ASTNode> expr;
 
     AssignNode(const std::string& _target, const std::string& _source, bool _is_reference)
-        : target_variable(_target), source_variable(_source), is_reference(_is_reference) {}
+        : target_variable(_target), source_variable(_source), is_reference(_is_reference), expr(nullptr) {}
+
+    AssignNode(const std::string& _target, std::shared_ptr<ASTNode> _expr)
+        : target_variable(_target), source_variable(""), is_reference(false), expr(_expr) {}
 };
 
 class LogNode : public ASTNode {
@@ -567,11 +571,17 @@ public:
             std::string source = current_token.value;
             next_token();
             return std::make_shared<AssignNode>(target, source, true);
-        } else if (current_token.type == TokenType::Number || current_token.type == TokenType::STRING || current_token.type == TokenType::BOOL) {
+        } 
+        else if (current_token.type == TokenType::Number || current_token.type == TokenType::STRING || current_token.type == TokenType::BOOL) {
             std::string source = current_token.value;
             next_token();
             return std::make_shared<AssignNode>(target, source, false);
-        } else {
+        }
+        else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol || current_token.type == TokenType::BOOL) {
+            auto expr = eval_bool_expression();
+            return std::make_shared<AssignNode>(target, expr);
+        }
+        else {
             throw ParseError("Expected a value or variable after '='", current_token.line, current_token.column);
         }
     }

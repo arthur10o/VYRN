@@ -76,6 +76,28 @@ private:
         return false;
     }
 
+    std::string generate_multiop_bool_expr(const std::shared_ptr<MultiOpBoolNode>& _node) {
+        if (!_node || _node->operands.empty()) return "";
+        std::ostringstream expr;
+        for (size_t i = 0; i < _node->operands.size(); ++i) {
+            if (auto sub = std::dynamic_pointer_cast<MultiOpBoolNode>(_node->operands[i])) {
+                expr << "(" << generate_multiop_bool_expr(sub) << ")";
+            } else if (auto lit = std::dynamic_pointer_cast<LiteralNode>(_node->operands[i])) {
+                expr << format_literal(lit);
+            } else if (auto var = std::dynamic_pointer_cast<ASTNode>(_node->operands[i])) {
+                if (auto l = std::dynamic_pointer_cast<LiteralNode>(var)) {
+                    expr << l->value;
+                } else {
+                    expr << "/*unsupported op*/";
+                }
+            }
+            if (i < _node->operators.size()) {
+                expr << " " << _node->operators[i] << " ";
+            }
+        }
+        return expr.str();
+    }
+
     void generate_assign(const std::shared_ptr<AssignNode>& _node, int _indent_level) {
         indent(_indent_level);
         bool declared = is_declared(_node->target_variable);
@@ -83,9 +105,17 @@ private:
             out << "// Error: variable '" << _node->target_variable << "' is not declared\n";
         } else if(is_const(_node->target_variable)) {
             out << "// Error: cannot assign to constant '" << _node->target_variable << "'\n";
-        }else {
+        } else {
             out << _node->target_variable << " = ";
-            if (_node->is_reference) {
+            if (_node->expr) {
+                if (auto multi_bool = std::dynamic_pointer_cast<MultiOpBoolNode>(_node->expr)) {
+                    out << generate_multiop_bool_expr(multi_bool);
+                } else if (auto bool_lit = std::dynamic_pointer_cast<BoolNode>(_node->expr)) {
+                    out << format_literal(bool_lit);
+                } else {
+                    out << "/* unsupported expr */";
+                }
+            } else if (_node->is_reference) {
                 out << _node->source_variable;
             } else {
                 if (symbol_table[_node->target_variable].types == "string" && _node->source_variable.find('"') == std::string::npos) {
@@ -107,7 +137,9 @@ private:
             symbol_table[_node->name] = SymbolInfo {_node->type, _node->value->value, _node->is_reference, _kind};
         }
         out << (_kind == SymbolKind::CONSTANT ? "const " : "") << convert_type(_node->type) << " " << _node->name << " = ";
-        if (_node->type == "string" && !_node->is_reference) {
+        if (auto multi_bool = std::dynamic_pointer_cast<MultiOpBoolNode>(_node->value)) {
+            out << generate_multiop_bool_expr(multi_bool);
+        } else if (_node->type == "string" && !_node->is_reference) {
             out << "\"" << _node->value->value << "\"";
         } else {
             out << (_node->is_reference ? _node->value->value : format_literal(_node->value));
