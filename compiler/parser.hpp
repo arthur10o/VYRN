@@ -1,7 +1,10 @@
-#ifdef PARSER_HPP
+#ifndef PARSER_HPP
 #define PARSER_HPP
 
 #include "lexer.hpp"
+#include "ast.hpp"
+
+#include <functional>
 
 /**
  * @file parser.hpp
@@ -76,7 +79,7 @@ class Parser {
                 bool val = parse_expression();
                 expect(TokenType::Symbol, ")");
                 return val;
-            } else if (current_token.type == TokenType::BOOL) {
+            } else if (current_token.type == TokenType::Bool) {
                 bool val = to_bool(current_token.value);
                 next_token();
                 return val;
@@ -317,14 +320,14 @@ public:
                 next_token();
                 return std::make_shared<BoolNode>(value);
             } else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol ||
-                       current_token.type == TokenType::Identifier || current_token.type == TokenType::BOOL ||
+                       current_token.type == TokenType::Identifier || current_token.type == TokenType::Bool ||
                        current_token.type == TokenType::Number) {
                 auto boolNode = eval_bool_expression();
                 return boolNode;
             }
         } else if (_type == "string") {
             // If the current token is a string or an identifier, parse the string value.
-            if (current_token.type == TokenType::STRING) {
+            if (current_token.type == TokenType::String) {
                 auto value = current_token.value;
                 next_token();
                 return std::make_shared<StringNode>(value);
@@ -399,12 +402,12 @@ public:
             next_token();
             return std::make_shared<AssignNode>(target, source, true);
         } 
-        else if (current_token.type == TokenType::Number || current_token.type == TokenType::STRING || current_token.type == TokenType::BOOL) {
+        else if (current_token.type == TokenType::Number || current_token.type == TokenType::String || current_token.type == TokenType::Bool) {
             std::string source = current_token.value;
             next_token();
             return std::make_shared<AssignNode>(target, source, false);
         }
-        else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol || current_token.type == TokenType::BOOL) {
+        else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol || current_token.type == TokenType::Bool) {
             auto expr = eval_bool_expression();
             return std::make_shared<AssignNode>(target, expr);
         }
@@ -443,12 +446,12 @@ public:
                 } else {
                     return std::make_shared<LogNode>(std::make_shared<IntNode>(value));
                 }
-            } else if (current_token.type == TokenType::STRING) {
+            } else if (current_token.type == TokenType::String) {
                 std::string value = current_token.value;
                 next_token();
                 expect(TokenType::Symbol, ")");   
                 return std::make_shared<LogNode>(std::make_shared<StringNode>(value));
-            } else if (current_token.type == TokenType::BOOL) {
+            } else if (current_token.type == TokenType::Bool) {
                 std::string value = current_token.value;
                 next_token();
                 expect(TokenType::Symbol, ")");   

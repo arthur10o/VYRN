@@ -1,9 +1,8 @@
 #ifndef LEXER_HPP
 #define LEXER_HPP
 
-#include <iostream>
-#include <vector>
-#include <memory>
+#include "ast.hpp"
+
 #include <unordered_set>
 
 /**
