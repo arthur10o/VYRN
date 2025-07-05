@@ -224,4 +224,5 @@ public:
         return {TokenType::Symbol, std::string(1, character_to_analyse), tok_line, tok_column};
     }
 };
+
 #endif
