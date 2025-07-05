@@ -3,8 +3,6 @@
 
 #include "ast.hpp"
 
-#include <unordered_set>
-
 /**
  * @file lexer.hpp
  * @brief Define the lexer to analyze the source code and create tokens.
@@ -12,73 +10,6 @@
  * @version 1.0
  * @date 2025-07-05
  */
-
-static const std::unordered_set<std::string> keywords = {
-    /**
-     * @brief All reserved keywords.
-     */
-    "let",
-    "const"
-};
-
-static const std::unordered_set<std::string> types = {
-    /**
-     * @brief All supported primitive types.
-     */
-    "int",
-    "float",
-    "bool",
-    "string"
-};
-
-static const std::unordered_set<std::string> boolean_operator = {
-    /**
-     * @brief All supported boolean operators.
-     */
-    "!",                        /**< logical NOT */
-    "||",                       /**< logical OR */
-    "!||",                      /**< logical NOR */
-    "&&",                       /**< logical AND */
-    "!&&",                      /**< logical NAND */
-    "==",                       /**< equality */
-    "!=",                       /**< inequality */
-    "<",                        /**< less than */
-    "<=",                       /**< less than or equal to */
-    ">",                        /**< greater than */
-    ">=",                       /**< greater than or equal to */
-    "=>",                       /**< implication */
-    "!=>",                      /**< non-implication */
-    "xor",                      /**< exclusive OR */
-    "nxor"                      /**< non-exclusive OR */
-};
-
-enum class TokenType {
-    /**
-     * @enum TokenType
-     * @brief Types of tokens recognized by the lexer.
-     */
-    Identifier,                 /**< Identifier (variable name, function, etc.) */
-    Keyword,                    /**< Reserved keyword */
-    Type,                       /**< Primitive type */
-    Number,                     /**< Number (integer or floating point) */
-    String,                     /**< String */
-    Bool,                       /**< Boolean value */
-    Symbol,                     /**< Punctuation symbol, non-boolean operator */
-    BooleanOperator,            /**< Boolean operator */
-    EndOfFile,                  /**< End of file */
-    Unknown                     /**< Unknown or invalid token */
-};
-
-struct Token {
-    /**
-     * @struct Token
-     * @brief Structure representing a token.
-     */
-    TokenType type;             /**< Type of the token */
-    std::string value;          /**< Value of the token */
-    int line;                   /**< Line number of the token */
-    int column;                 /**< Column number of the token */
-};
 
 class Lexer {
     /**
