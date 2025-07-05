@@ -170,6 +170,41 @@ graph LR
 ├── LICENSE
 └── README.md
 ```
+### Future architecture :
+```bash
+├── ide/                            # Composants de l'IDE
+│   ├── main.cpp                    # Point d’entrée du programme (IDE principal)
+│   ├── ui.cpp / ui.hpp             # Interface utilisateur (terminal avec ncurses ou GUI Qt)
+│   ├── editor.cpp / editor.hpp     # Éditeur de texte, gestion de fichiers, coloration syntaxique simple
+│
+├── compiler/                       # Compilation et exécution du langage
+│   ├── lexer.cpp / lexer.hpp       # Analyse lexicale (tokenisation)
+│   ├── parser.cpp / parser.hpp     # Analyse syntaxique (création AST)
+│   ├── ast.hpp                     # Structures de l’AST
+│   ├── semantic.cpp / semantic.hpp# Vérifications sémantiques (types, const, etc.)
+│   ├── codegen.cpp / codegen.hpp   # Génération ou exécution du code (C++ ou interprété)
+│   ├── runtime.cpp / runtime.hpp   # Fonctions natives (log, sqrt, etc.)
+│
+├── stdlib/                         # Fonctions de base du langage (implémentations natives ou wrappers)
+│   ├── math.vyrn                   # ex: sqrt, pow
+│   ├── io.vyrn                     # ex: log
+│
+├── tests/                          # Tests unitaires ou exemples
+│   ├── example1.vyrn               # Le fichier que tu as fourni
+│   └── example2.vyrn               # Autres cas à tester
+│
+├── bin/                            # Binaires générés
+│   ├── vyrn_ide                    # L'IDE compilé
+│   ├── vyrn_exec                   # Moteur d'exécution (optionnel si séparé)
+│
+├── doc/                            # Documentation du langage
+│   ├── syntax.md                   # Règles de syntaxe
+│   ├── types.md                    # Types supportés
+│   └── fonctions.md                # Fonctions natives
+│
+├── LICENSE
+└── README.md
+```
 
 ## Contribuer
 Contributions bienvenues !
