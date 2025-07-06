@@ -47,6 +47,17 @@
         "chrono": "cpp",
         "optional": "cpp",
         "format": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "bit": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "cstring": "cpp",
+        "map": "cpp",
+        "string_view": "cpp",
+        "numbers": "cpp",
+        "span": "cpp",
+        "text_encoding": "cpp",
+        "cinttypes": "cpp",
+        "variant": "cpp"
     }
 }

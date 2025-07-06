@@ -88,14 +88,14 @@ class Parser {
                  * @brief Comparison like 5 < 10, 5 > 10, etc. with digit is supported.
                  * @note This function will extend to handle variables name in the future.
                  */
-                auto left = eval_expression("float");
+                inline std::shared_ptr<LiteralNode> left = eval_expression("float");
                 if ((current_token.type == TokenType::Symbol || current_token.type == TokenType::BooleanOperator) &&
                    (current_token.value == "<" || current_token.value == ">" ||
                     current_token.value == "<=" || current_token.value == ">=" ||
                     current_token.value == "==" || current_token.value == "!=")) {
                     std::string op = current_token.value;
                     next_token();
-                    auto right = eval_expression("float");
+                    inline std::shared_ptr<LiteralNode> right = eval_expression("float");
                     float left_value = std::stof(left->value);
                     float right_value = std::stof(right->value);
                     /**
@@ -316,19 +316,19 @@ public:
              * @throw ParseError if the current token does not match the expected type or if an unexpected token is encountered.
              */
             if (current_token.value == "true" || current_token.value == "false") {
-                auto value = current_token.value;
+                std::string value = current_token.value;
                 next_token();
                 return std::make_shared<BoolNode>(value);
             } else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol ||
                        current_token.type == TokenType::Identifier || current_token.type == TokenType::Bool ||
                        current_token.type == TokenType::Number) {
-                auto boolNode = eval_bool_expression();
+                inline std::shared_ptr<BoolNode> boolNode = eval_bool_expression();
                 return boolNode;
             }
         } else if (_type == "string") {
             // If the current token is a string or an identifier, parse the string value.
             if (current_token.type == TokenType::String) {
-                auto value = current_token.value;
+                std::string value = current_token.value;
                 next_token();
                 return std::make_shared<StringNode>(value);
             } else if (current_token.type == TokenType::Identifier) {
@@ -370,7 +370,7 @@ public:
         next_token();
 
         expect(TokenType::Symbol, "=");
-        auto value_node = parse_value(type);
+        inline std::shared_ptr<LiteralNode> value_node = parse_value(type);
 
         return std::make_shared<DeclarationNode>(_is_const, type, name, value_node, false);
     }
@@ -408,7 +408,7 @@ public:
             return std::make_shared<AssignNode>(target, source, false);
         }
         else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol || current_token.type == TokenType::Bool) {
-            auto expr = eval_bool_expression();
+            inline std::shared_ptr<BoolNode> expr = eval_bool_expression();
             return std::make_shared<AssignNode>(target, expr);
         }
         else {

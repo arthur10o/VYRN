@@ -143,7 +143,7 @@ public:
         // Checking three-character Boolean operators
         if (pos + 2 < input.size()) {
             std::string three = input.substr(pos, 3);
-            for (const auto& op : three_character_operations) {
+            for (const std::string& op : three_character_operations) {
                 if (three == op) {
                     pos += 3;
                     column += 3;
@@ -155,7 +155,7 @@ public:
         // Checking two-character Boolean operators
         if (pos + 1 < input.size()) {
             std::string two = input.substr(pos, 2);
-            for (const auto& op : two_character_operations) {
+            for (const std::string& op : two_character_operations) {
                 if (two == op) {
                     pos += 2;
                     column += 2;
