@@ -181,7 +181,6 @@ graph LR
 │   ├── lexer.cpp / lexer.hpp       # Analyse lexicale (tokenisation)
 │   ├── parser.cpp / parser.hpp     # Analyse syntaxique (création AST)
 │   ├── ast.hpp                     # Structures de l’AST
-│   ├── semantic.cpp / semantic.hpp# Vérifications sémantiques (types, const, etc.)
 │   ├── codegen.cpp / codegen.hpp   # Génération ou exécution du code (C++ ou interprété)
 │   ├── runtime.cpp / runtime.hpp   # Fonctions natives (log, sqrt, etc.)
 |   ├── error.hpp
