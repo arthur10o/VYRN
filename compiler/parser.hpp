@@ -88,14 +88,14 @@ class Parser {
                  * @brief Comparison like 5 < 10, 5 > 10, etc. with digit is supported.
                  * @note This function will extend to handle variables name in the future.
                  */
-                inline std::shared_ptr<LiteralNode> left = eval_expression("float");
+                std::shared_ptr<LiteralNode> left = eval_expression("float");
                 if ((current_token.type == TokenType::Symbol || current_token.type == TokenType::BooleanOperator) &&
                    (current_token.value == "<" || current_token.value == ">" ||
                     current_token.value == "<=" || current_token.value == ">=" ||
                     current_token.value == "==" || current_token.value == "!=")) {
                     std::string op = current_token.value;
                     next_token();
-                    inline std::shared_ptr<LiteralNode> right = eval_expression("float");
+                    std::shared_ptr<LiteralNode> right = eval_expression("float");
                     float left_value = std::stof(left->value);
                     float right_value = std::stof(right->value);
                     /**
@@ -322,7 +322,7 @@ public:
             } else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol ||
                        current_token.type == TokenType::Identifier || current_token.type == TokenType::Bool ||
                        current_token.type == TokenType::Number) {
-                inline std::shared_ptr<BoolNode> boolNode = eval_bool_expression();
+                std::shared_ptr<BoolNode> boolNode = eval_bool_expression();
                 return boolNode;
             }
         } else if (_type == "string") {
@@ -370,7 +370,7 @@ public:
         next_token();
 
         expect(TokenType::Symbol, "=");
-        inline std::shared_ptr<LiteralNode> value_node = parse_value(type);
+        std::shared_ptr<LiteralNode> value_node = parse_value(type);
 
         return std::make_shared<DeclarationNode>(_is_const, type, name, value_node, false);
     }
@@ -408,7 +408,7 @@ public:
             return std::make_shared<AssignNode>(target, source, false);
         }
         else if (current_token.type == TokenType::BooleanOperator || current_token.type == TokenType::Symbol || current_token.type == TokenType::Bool) {
-            inline std::shared_ptr<BoolNode> expr = eval_bool_expression();
+            std::shared_ptr<BoolNode> expr = eval_bool_expression();
             return std::make_shared<AssignNode>(target, expr);
         }
         else {
@@ -439,8 +439,8 @@ public:
         } else {
             if (current_token.type == TokenType::Number) {
                 std::string value = current_token.value;
-                expect(TokenType::Symbol, ")");   
                 next_token();
+                expect(TokenType::Symbol, ")");   
                 if (value.find('.') != std::string::npos || value.find(',') != std::string::npos) {
                     return std::make_shared<LogNode>(std::make_shared<FloatNode>(value));
                 } else {

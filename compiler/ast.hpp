@@ -7,7 +7,7 @@
 #include <unordered_set>
 
 /**
- * @file parser.hpp
+ * @file ast.hpp
  * @brief Define all structures and tokens used in the Abstract Syntax Tree (AST).
  * @author Arthur
  * @version 1.0
