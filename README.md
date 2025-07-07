@@ -184,6 +184,7 @@ graph LR
 │   ├── semantic.cpp / semantic.hpp# Vérifications sémantiques (types, const, etc.)
 │   ├── codegen.cpp / codegen.hpp   # Génération ou exécution du code (C++ ou interprété)
 │   ├── runtime.cpp / runtime.hpp   # Fonctions natives (log, sqrt, etc.)
+|   ├── error.hpp
 │
 ├── stdlib/                         # Fonctions de base du langage (implémentations natives ou wrappers)
 │   ├── math.vyrn                   # ex: sqrt, pow
