@@ -172,38 +172,43 @@ graph LR
 ```
 ### Future architecture :
 ```bash
-├── ide/                            # Composants de l'IDE
-│   ├── main.cpp                    # Point d’entrée du programme (IDE principal)
-│   ├── ui.cpp / ui.hpp             # Interface utilisateur (terminal avec ncurses ou GUI Qt)
-│   ├── editor.cpp / editor.hpp     # Éditeur de texte, gestion de fichiers, coloration syntaxique simple
+vyrn_flutter_app/
+├── flutter_app/                   # Projet Flutter (UI)
+│   ├── lib/
+│   │   ├── main.dart              # Point d’entrée Flutter
+│   │   └── vyrn_bridge.dart       # Code Dart FFI vers libvyrn.so
+│   ├── pubspec.yaml
+│   └── build/
+│       └── linux/x64/Debug/libvyrn.so  # Bibliothèque C++ compilée
 │
-├── compiler/                       # Compilation et exécution du langage
-│   ├── lexer.cpp / lexer.hpp       # Analyse lexicale (tokenisation)
-│   ├── parser.cpp / parser.hpp     # Analyse syntaxique (création AST)
-│   ├── ast.hpp                     # Structures de l’AST
-│   ├── codegen.cpp / codegen.hpp   # Génération ou exécution du code (C++ ou interprété)
-│   ├── runtime.cpp / runtime.hpp   # Fonctions natives (log, sqrt, etc.)
-|   ├── error.hpp
+├── vyrn_engine/                  # Moteur du langage en C++
+│   ├── CMakeLists.txt            # Configuration CMake pour construire libvyrn.so
+│   ├── include/                  # Fichiers d'en-tête publics
+│   │   ├── api.hpp               # Fonctions exposées à Flutter
+│   │   ├── lexer.hpp
+│   │   ├── parser.hpp
+│   │   ├── ast.hpp
+│   │   ├── codegen.hpp
+│   │   ├── runtime.hpp
+│   │   └── error.hpp
+│   ├── src/                      # Code source C++
+│   │   ├── lexer.cpp
+│   │   ├── parser.cpp
+│   │   ├── codegen.cpp
+│   │   ├── runtime.cpp
+│   │   ├── api.cpp               # Implémente compile_and_run()
+│   │   └── main.cpp              # (optionnel pour test en CLI)
 │
-├── stdlib/                         # Fonctions de base du langage (implémentations natives ou wrappers)
-│   ├── math.vyrn                   # ex: sqrt, pow
-│   ├── io.vyrn                     # ex: log
+├── stdlib/                       # Fichiers du langage Vyrn
+│   ├── math.vyrn
+│   └── io.vyrn
 │
-├── tests/                          # Tests unitaires ou exemples
-│   ├── example1.vyrn               # Le fichier que tu as fourni
-│   └── example2.vyrn               # Autres cas à tester
+├── tests/
+│   ├── example1.vyrn
+│   └── example2.vyrn
 │
-├── bin/                            # Binaires générés
-│   ├── vyrn_ide                    # L'IDE compilé
-│   ├── vyrn_exec                   # Moteur d'exécution (optionnel si séparé)
-│
-├── doc/                            # Documentation du langage
-│   ├── syntax.md                   # Règles de syntaxe
-│   ├── types.md                    # Types supportés
-│   └── fonctions.md                # Fonctions natives
-│
-├── LICENSE
-└── README.md
+├── README.md
+└── LICENSE
 ```
 
 ## Contribuer
