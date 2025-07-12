@@ -176,6 +176,7 @@ vyrn/
 ├── compiler/                    # Front-end du compilateur : analyse, parsing, IR
 │   ├── src/
 │   │   ├── lexer.rs             # Lexical Analysis (analyseur lexical) -> Rust
+│   │   │   └── syntax_highlighting.rs  # Nouveau fichier pour la gestion de la coloration syntaxique -> Rust
 │   │   ├── parser.rs            # Parsing (conversion source → AST) -> Rust
 │   │   ├── ast.rs               # AST (Représentation syntaxique abstraite) -> Rust
 │   │   ├── semantic.rs          # Analyse sémantique (types, portée) -> Rust
@@ -184,6 +185,7 @@ vyrn/
 │   │   │   ├── llvm_backend.rs  # Compilation vers LLVM IR + JIT -> Rust
 │   │   │   └── wasm_backend.rs  # Compilation vers WebAssembly -> Rust
 │   ├── include/                 # Headers pour FFI (interface entre langages)
+│   ├── errors.rs                # Gestion des erreurs avancée -> Rust
 │   └── Cargo.toml               # Dépendances et gestion du projet (Rust)
 ├── runtime/                     # Runtime écrit en Rust (ou C pour certaines parties)
 │   ├── memory.rs                # Gestion mémoire : sans GC -> Rust
@@ -197,8 +199,9 @@ vyrn/
 │   ├── io.vyrn                  # IO (entrée/sortie) -> Vyrn
 │   ├── async.vyrn               # Fonctions asynchrones et concurrents -> Vyrn
 │   ├── collections.vyrn         # Collections (listes, dictionnaires, etc.) -> Vyrn
-│   ├── error_handling.vyrn      # Gestion des erreurs (Option, Result) -> Vyrn
-│   └── physics.vyrn             # Calculs de physique, constantes, formules -> Vyrn
+│   ├── error_handling.vyrn      # Gestion des erreurs (Option, Result, erreurs détaillées) -> Vyrn
+│   ├── physics.vyrn             # Calculs de physique, constantes, formules -> Vyrn
+│   └── syntax_highlighting.vyrn # Métadonnées pour la coloration syntaxique dans l'IDE -> Vyrn
 ├── cli/                         # Outil CLI pour interagir avec le compilateur/interpréteur
 │   ├── main.rs                  # Point d'entrée de l'outil CLI (compilation, exécution) -> Rust
 │   └── Cargo.toml               # Dépendances de l'outil CLI (Rust)
@@ -217,6 +220,7 @@ vyrn/
 ├── docs/                         # Documentation du projet
 │   ├── language.md              # Spécifications du langage Vyrn
 │   ├── runtime.md               # Architecture du runtime et gestion mémoire
+│   ├── syntax_highlighting.md   # Documentation pour la personnalisation de la coloration syntaxique
 │   └── stdlib.md                # Documentation de la librairie standard
 ├── README.md                    # Documentation d’introduction au projet
 └── LICENSE                       # Licence du projet
