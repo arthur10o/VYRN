@@ -172,43 +172,54 @@ graph LR
 ```
 ### Future architecture :
 ```bash
-vyrn_flutter_app/
-├── flutter_app/                   # Projet Flutter (UI)
-│   ├── lib/
-│   │   ├── main.dart              # Point d’entrée Flutter
-│   │   └── vyrn_bridge.dart       # Code Dart FFI vers libvyrn.so
-│   ├── pubspec.yaml
-│   └── build/
-│       └── linux/x64/Debug/libvyrn.so  # Bibliothèque C++ compilée
-│
-├── vyrn_engine/                  # Moteur du langage en C++
-│   ├── CMakeLists.txt            # Configuration CMake pour construire libvyrn.so
-│   ├── include/                  # Fichiers d'en-tête publics
-│   │   ├── api.hpp               # Fonctions exposées à Flutter
-│   │   ├── lexer.hpp
-│   │   ├── parser.hpp
-│   │   ├── ast.hpp
-│   │   ├── codegen.hpp
-│   │   ├── runtime.hpp
-│   │   └── error.hpp
-│   ├── src/                      # Code source C++
-│   │   ├── lexer.cpp
-│   │   ├── parser.cpp
-│   │   ├── codegen.cpp
-│   │   ├── runtime.cpp
-│   │   ├── api.cpp               # Implémente compile_and_run()
-│   │   └── main.cpp              # (optionnel pour test en CLI)
-│
-├── stdlib/                       # Fichiers du langage Vyrn
-│   ├── math.vyrn
-│   └── io.vyrn
-│
-├── tests/
-│   ├── example1.vyrn
-│   └── example2.vyrn
-│
-├── README.md
-└── LICENSE
+vyrn/
+├── compiler/                    # Front-end du compilateur : analyse, parsing, IR
+│   ├── src/
+│   │   ├── lexer.rs             # Lexical Analysis (analyseur lexical) -> Rust
+│   │   ├── parser.rs            # Parsing (conversion source → AST) -> Rust
+│   │   ├── ast.rs               # AST (Représentation syntaxique abstraite) -> Rust
+│   │   ├── semantic.rs          # Analyse sémantique (types, portée) -> Rust
+│   │   ├── ir.rs                # Représentation intermédiaire (IR) -> Rust
+│   │   ├── codegen/             # Génération de code : Backend
+│   │   │   ├── llvm_backend.rs  # Compilation vers LLVM IR + JIT -> Rust
+│   │   │   └── wasm_backend.rs  # Compilation vers WebAssembly -> Rust
+│   ├── include/                 # Headers pour FFI (interface entre langages)
+│   └── Cargo.toml               # Dépendances et gestion du projet (Rust)
+├── runtime/                     # Runtime écrit en Rust (ou C pour certaines parties)
+│   ├── memory.rs                # Gestion mémoire : sans GC -> Rust
+│   ├── scheduler.rs             # Concurrence (async/await, gestion des tâches légères) -> Rust
+│   ├── builtins.rs              # Fonctions de base (IO, maths, etc.) -> Rust
+│   ├── thread_pool.rs           # Optimisation du modèle M:N pour les threads -> Rust
+│   └── runtime_config.rs        # Configuration du runtime (options de gestion mémoire, concurrency) -> Rust
+├── stdlib/                      # Librairie standard du langage Vyrn
+│   ├── string.vyrn              # Manipulation des chaînes de caractères -> Vyrn
+│   ├── math.vyrn                # Fonctions mathématiques avancées -> Vyrn
+│   ├── io.vyrn                  # IO (entrée/sortie) -> Vyrn
+│   ├── async.vyrn               # Fonctions asynchrones et concurrents -> Vyrn
+│   ├── collections.vyrn         # Collections (listes, dictionnaires, etc.) -> Vyrn
+│   ├── error_handling.vyrn      # Gestion des erreurs (Option, Result) -> Vyrn
+│   └── physics.vyrn             # Calculs de physique, constantes, formules -> Vyrn
+├── cli/                         # Outil CLI pour interagir avec le compilateur/interpréteur
+│   ├── main.rs                  # Point d'entrée de l'outil CLI (compilation, exécution) -> Rust
+│   └── Cargo.toml               # Dépendances de l'outil CLI (Rust)
+├── tests/                       # Tests : unités, intégration, et performance
+│   ├── parser/                  # Tests pour l'analyse lexicale et syntaxique
+│   ├── compiler/                # Tests pour le compilateur et la génération de code
+│   ├── runtime/                 # Tests pour le runtime (mémoire, concurrence, IO)
+│   └── examples/                # Tests d'exemples concrets de code Vyrn
+├── bindings/                    # Bindings pour interopérer avec d'autres langages
+│   ├── dart/                    # Bindings pour Flutter (via FFI Dart)
+│   │   └── vyrn_bridge.dart     # Interface Dart pour appeler le moteur Vyrn
+│   ├── python/                  # Bindings pour Python (via PyO3 / CFFI)
+│   │   └── vyrn.py              # Interface Python pour appeler le moteur Vyrn
+│   └── c/                       # Headers FFI C pour interopération avec des langages C
+│       └── vyrn.h
+├── docs/                         # Documentation du projet
+│   ├── language.md              # Spécifications du langage Vyrn
+│   ├── runtime.md               # Architecture du runtime et gestion mémoire
+│   └── stdlib.md                # Documentation de la librairie standard
+├── README.md                    # Documentation d’introduction au projet
+└── LICENSE                       # Licence du projet
 ```
 
 ## Contribuer
