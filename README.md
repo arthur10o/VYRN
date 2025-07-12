@@ -222,8 +222,44 @@ vyrn/
 │   ├── runtime.md               # Architecture du runtime et gestion mémoire
 │   ├── syntax_highlighting.md   # Documentation pour la personnalisation de la coloration syntaxique
 │   └── stdlib.md                # Documentation de la librairie standard
-├── README.md                    # Documentation d’introduction au projet
+├── ide/                          # L'IDE pour Vyrn (en Dart)
+│   ├── src/                      # Code source de l'IDE
+│   │   ├── main.dart             # Point d'entrée de l'IDE (initialisation, lancement)
+│   │   ├── editor/              # Éditeur de code et gestion de l'interface utilisateur
+│   │   │   ├── code_editor.dart # Widget pour l'éditeur de texte avec syntaxe colorée
+│   │   │   ├── syntax_highlighting.dart # Application de la coloration syntaxique
+│   │   │   ├── themes.dart      # Gestion des thèmes d'éditeur
+│   │   │   └── autocomplete.dart # Suggestions d'auto-complétion pour l'éditeur
+│   │   ├── compiler/            # Interaction avec le compilateur Vyrn via FFI
+│   │   │   ├── vyrn_bridge.dart # Interface FFI pour appeler le backend Vyrn en Rust
+│   │   │   ├── compiler_service.dart # Service pour compilation et exécution du code
+│   │   │   └── error_handling.dart # Gestion des erreurs de compilation et d'exécution
+│   │   ├── runtime/             # Gestion de l'exécution du code dans l'IDE
+│   │   │   ├── output_console.dart # Affichage des résultats dans la console
+│   │   │   └── runner.dart      # Lancer l'exécution du code compilé dans l'IDE
+│   │   ├── settings/            # Paramètres de l'IDE
+│   │   │   ├── settings.dart    # Configuration des préférences utilisateurs
+│   │   │   └── config.dart      # Chargement et gestion des configurations
+│   │   ├── utils/               # Utilitaires pour l'IDE
+│   │   │   ├── file_io.dart     # Lecture et écriture de fichiers
+│   │   │   └── notifications.dart # Notifications dans l'IDE
+│   │   └── widgets/             # Widgets personnalisés pour l'interface
+│   │       ├── file_browser.dart # Gestion de la navigation de fichiers dans l'IDE
+│   │       └── settings_dialog.dart # Boîte de dialogue pour les paramètres de l'IDE
+│   ├── bindings/                # Bindings pour interagir avec le moteur Vyrn (via FFI)
+│   │   └── libvyrn.dylib / libvyrn.so / vyrn.dll # Fichier binaire compilé à partir de Rust pour l'interface FFI
+│   ├── assets/                  # Fichiers statiques utilisés dans l'IDE
+│   │   ├── themes/              # Thèmes de l'éditeur de code
+│   │   ├── icons/               # Icônes pour l'interface de l'IDE
+│   │   └── snippets/            # Exemples de code pour l'auto-complétion
+│   ├── test/                    # Tests pour l'IDE
+│   │   ├── editor_test.dart     # Tests pour l'éditeur de texte (UI, syntaxe, auto-complétion)
+│   │   ├── compiler_interface_test.dart # Tests pour l'interface FFI avec le compilateur
+│   │   └── runner_test.dart     # Tests pour l'exécution du code dans l'IDE
+│   └── pubspec.yaml             # Dépendances Dart pour l'IDE
+├── README.md                    # Documentation d’introduction au projet Vyrn
 └── LICENSE                       # Licence du projet
+
 ```
 
 ## Contribuer
